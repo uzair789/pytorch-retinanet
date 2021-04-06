@@ -32,7 +32,7 @@ def main(args=None):
     parser.add_argument('--exp_name', help='Path to folder for saving the model and log')
 
     parser.add_argument('--depth', help='Resnet depth, must be one of 18, 34, 50, 101, 152', type=int, default=50)
-    parser.add_argument('--epochs', help='Number of epochs', type=int, default=1) # 100
+    parser.add_argument('--epochs', help='Number of epochs', type=int, default=100) # 100
 
     parser = parser.parse_args(args)
 
