@@ -20,30 +20,38 @@ model_urls = {
 }
 
 
+def conv2d(in_channels, out_channels, kernel_size, stride, padding, bias=True):
+    return nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=bias)
+
+
+def activation(inplace=False):
+    return nn.ReLU(inplace=inplace)
+
+
 class PyramidFeatures(nn.Module):
     def __init__(self, C3_size, C4_size, C5_size, feature_size=256):
         super(PyramidFeatures, self).__init__()
 
         # upsample C5 to get P5 from the FPN paper
-        self.P5_1 = nn.Conv2d(C5_size, feature_size, kernel_size=1, stride=1, padding=0)
+        self.P5_1 = conv2d(C5_size, feature_size, kernel_size=1, stride=1, padding=0)
         self.P5_upsampled = nn.Upsample(scale_factor=2, mode='nearest')
-        self.P5_2 = nn.Conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1)
+        self.P5_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1)
 
         # add P5 elementwise to C4
-        self.P4_1 = nn.Conv2d(C4_size, feature_size, kernel_size=1, stride=1, padding=0)
+        self.P4_1 = conv2d(C4_size, feature_size, kernel_size=1, stride=1, padding=0)
         self.P4_upsampled = nn.Upsample(scale_factor=2, mode='nearest')
-        self.P4_2 = nn.Conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1)
+        self.P4_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1)
 
         # add P4 elementwise to C3
-        self.P3_1 = nn.Conv2d(C3_size, feature_size, kernel_size=1, stride=1, padding=0)
-        self.P3_2 = nn.Conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1)
+        self.P3_1 = conv2d(C3_size, feature_size, kernel_size=1, stride=1, padding=0)
+        self.P3_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1)
 
         # "P6 is obtained via a 3x3 stride-2 conv on C5"
-        self.P6 = nn.Conv2d(C5_size, feature_size, kernel_size=3, stride=2, padding=1)
+        self.P6 = conv2d(C5_size, feature_size, kernel_size=3, stride=2, padding=1)
 
         # "P7 is computed by applying ReLU followed by a 3x3 stride-2 conv on P6"
-        self.P7_1 = nn.ReLU()
-        self.P7_2 = nn.Conv2d(feature_size, feature_size, kernel_size=3, stride=2, padding=1)
+        self.P7_1 = activation()
+        self.P7_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=2, padding=1)
 
     def forward(self, inputs):
         C3, C4, C5 = inputs
@@ -73,19 +81,19 @@ class RegressionModel(nn.Module):
     def __init__(self, num_features_in, num_anchors=9, feature_size=256):
         super(RegressionModel, self).__init__()
 
-        self.conv1 = nn.Conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
-        self.act1 = nn.ReLU()
+        self.conv1 = conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
+        self.act1 = activation()
 
-        self.conv2 = nn.Conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act2 = nn.ReLU()
+        self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
+        self.act2 = activation()
 
-        self.conv3 = nn.Conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act3 = nn.ReLU()
+        self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
+        self.act3 = activation()
 
-        self.conv4 = nn.Conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act4 = nn.ReLU()
+        self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
+        self.act4 = activation()
 
-        self.output = nn.Conv2d(feature_size, num_anchors * 4, kernel_size=3, padding=1)
+        self.output = conv2d(feature_size, num_anchors * 4, kernel_size=3, padding=1)
 
     def forward(self, x):
         out = self.conv1(x)
@@ -115,19 +123,19 @@ class ClassificationModel(nn.Module):
         self.num_classes = num_classes
         self.num_anchors = num_anchors
 
-        self.conv1 = nn.Conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
-        self.act1 = nn.ReLU()
+        self.conv1 = conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
+        self.act1 = activation()
 
-        self.conv2 = nn.Conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act2 = nn.ReLU()
+        self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
+        self.act2 = activation()
 
-        self.conv3 = nn.Conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act3 = nn.ReLU()
+        self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
+        self.act3 = activation()
 
-        self.conv4 = nn.Conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act4 = nn.ReLU()
+        self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
+        self.act4 = activation()
 
-        self.output = nn.Conv2d(feature_size, num_anchors * num_classes, kernel_size=3, padding=1)
+        self.output = conv2d(feature_size, num_anchors * num_classes, kernel_size=3, padding=1)
         self.output_act = nn.Sigmoid()
 
     def forward(self, x):
@@ -161,9 +169,9 @@ class ResNet(nn.Module):
     def __init__(self, num_classes, block, layers):
         self.inplanes = 64
         super(ResNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.conv1 = conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = activation(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
@@ -177,7 +185,7 @@ class ResNet(nn.Module):
             fpn_sizes = [self.layer2[layers[1] - 1].conv3.out_channels, self.layer3[layers[2] - 1].conv3.out_channels,
                          self.layer4[layers[3] - 1].conv3.out_channels]
         else:
-            raise ValueError(f"Block type {block} not understood")
+            raise ValueError("Block type {} not understood".format(block))
 
         self.fpn = PyramidFeatures(fpn_sizes[0], fpn_sizes[1], fpn_sizes[2])
 
@@ -193,7 +201,7 @@ class ResNet(nn.Module):
         self.focalLoss = losses.FocalLoss()
 
         for m in self.modules():
-            if isinstance(m, nn.Conv2d):
+            if isinstance(m, conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
                 m.weight.data.normal_(0, math.sqrt(2. / n))
             elif isinstance(m, nn.BatchNorm2d):
@@ -214,8 +222,8 @@ class ResNet(nn.Module):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
-                nn.Conv2d(self.inplanes, planes * block.expansion,
-                          kernel_size=1, stride=stride, bias=False),
+                conv2d(self.inplanes, planes * block.expansion,
+                       kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
@@ -299,7 +307,6 @@ class ResNet(nn.Module):
                 finalAnchorBoxesCoordinates = torch.cat((finalAnchorBoxesCoordinates, anchorBoxes[anchors_nms_idx]))
 
             return [finalScores, finalAnchorBoxesIndexes, finalAnchorBoxesCoordinates]
-
 
 
 def resnet18(num_classes, pretrained=False, **kwargs):
