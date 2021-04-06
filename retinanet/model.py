@@ -21,12 +21,13 @@ model_urls = {
 
 
 def conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True):
-    return nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=bias)
+    # return nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=bias)
+    return HardBinaryConv(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
 
 
 def activation(inplace=False):
-    return nn.ReLU(inplace=inplace)
-
+    # return nn.ReLU(inplace=inplace)
+    return BinaryActivation()
 
 class PyramidFeatures(nn.Module):
     def __init__(self, C3_size, C4_size, C5_size, feature_size=256):
@@ -211,10 +212,17 @@ class ResNet(nn.Module):
         prior = 0.01
 
         self.classificationModel.output.weight.data.fill_(0)
-        self.classificationModel.output.bias.data.fill_(-math.log((1.0 - prior) / prior))
+        try:
+            self.classificationModel.output.bias.data.fill_(-math.log((1.0 - prior) / prior))
+        except Exception as e:
+            print('bias not in use in classification model')
 
         self.regressionModel.output.weight.data.fill_(0)
-        self.regressionModel.output.bias.data.fill_(0)
+
+        try:
+            self.regressionModel.output.bias.data.fill_(0)
+        except Exception as e:
+            print('bias not in use in regression model')
 
         self.freeze_bn()
 
