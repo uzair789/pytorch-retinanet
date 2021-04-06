@@ -20,7 +20,7 @@ model_urls = {
 }
 
 
-def conv2d(in_channels, out_channels, kernel_size, stride, padding, bias=True):
+def conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True):
     return nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=bias)
 
 
@@ -201,7 +201,7 @@ class ResNet(nn.Module):
         self.focalLoss = losses.FocalLoss()
 
         for m in self.modules():
-            if isinstance(m, conv2d):
+            if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
                 m.weight.data.normal_(0, math.sqrt(2. / n))
             elif isinstance(m, nn.BatchNorm2d):

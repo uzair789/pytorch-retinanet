@@ -1,3 +1,4 @@
+import os
 import argparse
 import collections
 
@@ -28,11 +29,15 @@ def main(args=None):
     parser.add_argument('--csv_train', help='Path to file containing training annotations (see readme)')
     parser.add_argument('--csv_classes', help='Path to file containing class list (see readme)')
     parser.add_argument('--csv_val', help='Path to file containing validation annotations (optional, see readme)')
+    parser.add_argument('--exp_name', help='Path to folder for saving the model and log')
 
     parser.add_argument('--depth', help='Resnet depth, must be one of 18, 34, 50, 101, 152', type=int, default=50)
-    parser.add_argument('--epochs', help='Number of epochs', type=int, default=100)
+    parser.add_argument('--epochs', help='Number of epochs', type=int, default=1) # 100
 
     parser = parser.parse_args(args)
+
+    if not os.path.exists(parser.exp_name):
+        os.mkdirs(parser.exp_name)
 
     # Create the data loaders
     if parser.dataset == 'coco':
@@ -126,7 +131,7 @@ def main(args=None):
                     classification_loss, regression_loss = retinanet([data['img'].cuda().float(), data['annot']])
                 else:
                     classification_loss, regression_loss = retinanet([data['img'].float(), data['annot']])
-                    
+
                 classification_loss = classification_loss.mean()
                 regression_loss = regression_loss.mean()
 
@@ -169,11 +174,11 @@ def main(args=None):
 
         scheduler.step(np.mean(epoch_loss))
 
-        torch.save(retinanet.module, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num))
+        torch.save(retinanet.module, os.path.join(parser.exp_name, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num)))
 
     retinanet.eval()
 
-    torch.save(retinanet, 'model_final.pt')
+    torch.save(retinanet, os.path.join(parser.exp_name, 'model_final.pt'))
 
 
 if __name__ == '__main__':
