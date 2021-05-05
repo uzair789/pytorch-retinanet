@@ -20,14 +20,16 @@ model_urls = {
 }
 
 
-def conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True):
-    # return nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=bias)
-    return HardBinaryConv(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
+def conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True, is_bin=False):
+     if is_bin:
+         return HardBinaryConv(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
+     return nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=bias)
 
 
-def activation(inplace=False):
-    # return nn.ReLU(inplace=inplace)
-    return BinaryActivation()
+def activation(inplace=False, is_bin=False):
+    if is_bin:
+        return BinaryActivation()
+    return nn.ReLU(inplace=inplace)
 
 class PyramidFeatures(nn.Module):
     def __init__(self, C3_size, C4_size, C5_size, feature_size=256):
@@ -180,8 +182,10 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
 
         if block == BasicBlock:
-            fpn_sizes = [self.layer2[layers[1] - 1].conv2.out_channels, self.layer3[layers[2] - 1].conv2.out_channels,
-                         self.layer4[layers[3] - 1].conv2.out_channels]
+            # fpn_sizes = [self.layer2[layers[1] - 1].conv2.out_channels, self.layer3[layers[2] - 1].conv2.out_channels,
+            #              self.layer4[layers[3] - 1].conv2.out_channels]
+            fpn_sizes = [self.layer2[layers[1] - 1].out_channels, self.layer3[layers[2] - 1].out_channels,
+                         self.layer4[layers[3] - 1].out_channels]
         elif block == Bottleneck:
             fpn_sizes = [self.layer2[layers[1] - 1].conv3.out_channels, self.layer3[layers[2] - 1].conv3.out_channels,
                          self.layer4[layers[3] - 1].conv3.out_channels]

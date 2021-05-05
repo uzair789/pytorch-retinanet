@@ -30,14 +30,16 @@ def main(args=None):
     parser.add_argument('--csv_classes', help='Path to file containing class list (see readme)')
     parser.add_argument('--csv_val', help='Path to file containing validation annotations (optional, see readme)')
     parser.add_argument('--exp_name', help='Path to folder for saving the model and log')
+    parser.add_argument('--output_folder', help='Path to folder for saving all the experiments')
 
     parser.add_argument('--depth', help='Resnet depth, must be one of 18, 34, 50, 101, 152', type=int, default=50)
     parser.add_argument('--epochs', help='Number of epochs', type=int, default=100) # 100
 
     parser = parser.parse_args(args)
 
-    if not os.path.exists(parser.exp_name):
-        os.mkdirs(parser.exp_name)
+    output_folder_path = os.path.exists(os.path.join(parser.output_folder, parser.exp_name))
+    if not os.path.exists(output_folder_path):
+        os.makedirs(output_folder_path)
 
     # Create the data loaders
     if parser.dataset == 'coco':

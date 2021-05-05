@@ -2,12 +2,27 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+from retinanet.binary_units import BinaryActivation, HardBinaryConv, BinaryLinear
 
+
+def conv3x3(in_channels, out_channels, stride=1, is_bin=True):
+     if is_bin:
+         return HardBinaryConv(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
+     return nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
+
+
+def activation(inplace=False, is_bin=True):
+    if is_bin:
+        return BinaryActivation()
+    return nn.ReLU(inplace=inplace)
+
+
+'''
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
                      padding=1, bias=False)
-
+'''
 
 class BasicBlock(nn.Module):
     expansion = 1
@@ -16,8 +31,9 @@ class BasicBlock(nn.Module):
         super(BasicBlock, self).__init__()
         self.conv1 = conv3x3(inplanes, planes, stride)
         self.bn1 = nn.BatchNorm2d(planes)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = activation(inplace=True)
         self.conv2 = conv3x3(planes, planes)
+        self.out_channels = planes
         self.bn2 = nn.BatchNorm2d(planes)
         self.downsample = downsample
         self.stride = stride
@@ -140,5 +156,5 @@ class ClipBoxes(nn.Module):
 
         boxes[:, :, 2] = torch.clamp(boxes[:, :, 2], max=width)
         boxes[:, :, 3] = torch.clamp(boxes[:, :, 3], max=height)
-      
+
         return boxes
