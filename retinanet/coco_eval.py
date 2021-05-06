@@ -4,9 +4,9 @@ import torch
 
 
 def evaluate_coco(dataset, model, threshold=0.05):
-    
+
     model.eval()
-    
+
     with torch.no_grad():
 
         # start collecting results
@@ -77,8 +77,8 @@ def evaluate_coco(dataset, model, threshold=0.05):
         coco_eval.params.imgIds = image_ids
         coco_eval.evaluate()
         coco_eval.accumulate()
-        coco_eval.summarize()
+        summary = coco_eval.summarize()
 
         model.train()
 
-        return
+        return summary

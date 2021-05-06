@@ -16,9 +16,13 @@ from torch.utils.data import DataLoader
 from retinanet import coco_eval
 from retinanet import csv_eval
 
+import neptune
+
 assert torch.__version__.split('.')[0] == '1'
 
 print('CUDA available: {}'.format(torch.cuda.is_available()))
+
+neptune.init('uzair789/Distillation')
 
 
 def main(args=None):
@@ -29,17 +33,40 @@ def main(args=None):
     parser.add_argument('--csv_train', help='Path to file containing training annotations (see readme)')
     parser.add_argument('--csv_classes', help='Path to file containing class list (see readme)')
     parser.add_argument('--csv_val', help='Path to file containing validation annotations (optional, see readme)')
-    parser.add_argument('--exp_name', help='Path to folder for saving the model and log')
-    parser.add_argument('--output_folder', help='Path to folder for saving all the experiments')
+    parser.add_argument('--exp_name', help='Path to folder for saving the model and log', type=str)
+    parser.add_argument('--output_folder', help='Path to folder for saving all the experiments', type=str)
 
     parser.add_argument('--depth', help='Resnet depth, must be one of 18, 34, 50, 101, 152', type=int, default=50)
     parser.add_argument('--epochs', help='Number of epochs', type=int, default=100) # 100
+    parser.add_argument('--batch_size', help='Batch size', type=int, default=2)
+    parser.add_argument('--lr', help='Number of epochs', type=float, default=1e-5)
+    parser.add_argument('--caption', help='Any thing in particular about the experiment', type=str)
+    parser.add_argument('--server', help='seerver name', type=str, default='ultron')
+    parser.add_argument('--detector', help='detection algo', type=str, default='RetinaNet')
 
     parser = parser.parse_args(args)
 
     output_folder_path = os.path.exists(os.path.join(parser.output_folder, parser.exp_name))
     if not os.path.exists(output_folder_path):
         os.makedirs(output_folder_path)
+
+
+    PARAMS = {'dataset': parser.dataset,
+              'exp_name': parser.exp_name,
+              'depth': parser.depth,
+              'epochs': parser.epochs,
+              'batch_size': parser.batch_size,
+              'lr': parser.lr,
+              'caption': parser.caption,
+              'server': parser.server
+
+
+    }
+
+    exp = neptune.create_experiment(name=parser.exp_name, params=PARAMS, tags=['resnet'+str(parser.depth),
+                                                                                parser.detector,
+                                                                                parser.dataset,
+                                                                                parser.server])
 
     # Create the data loaders
     if parser.dataset == 'coco':
@@ -73,7 +100,7 @@ def main(args=None):
     else:
         raise ValueError('Dataset type not understood (must be csv or coco), exiting.')
 
-    sampler = AspectRatioBasedSampler(dataset_train, batch_size=2, drop_last=False)
+    sampler = AspectRatioBasedSampler(dataset_train, batch_size=parser.batch_size, drop_last=False)
     dataloader_train = DataLoader(dataset_train, num_workers=3, collate_fn=collater, batch_sampler=sampler)
 
     if dataset_val is not None:
@@ -107,7 +134,7 @@ def main(args=None):
 
     retinanet.training = True
 
-    optimizer = optim.Adam(retinanet.parameters(), lr=1e-5)
+    optimizer = optim.Adam(retinanet.parameters(), lr=parser.lr)
 
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
 
@@ -156,6 +183,10 @@ def main(args=None):
                     'Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}'.format(
                         epoch_num, iter_num, float(classification_loss), float(regression_loss), np.mean(loss_hist)))
 
+                exp.log_metric('Training: Classification loss', float(classification_loss))
+                exp.log_metric('Training: Regression loss', float(regression_loss))
+                exp.log_metric('Training: Totalloss', float(loss))
+
                 del classification_loss
                 del regression_loss
             except Exception as e:
@@ -166,7 +197,12 @@ def main(args=None):
 
             print('Evaluating dataset')
 
-            coco_eval.evaluate_coco(dataset_val, retinanet)
+            summary = coco_eval.evaluate_coco(dataset_val, retinanet)
+            ap1, iou_point_five, iou_point_sevenfive = summary[0:3]
+
+            exp.log_metric('Validation: ap1', float(ap1))
+            exp.log_metric('Validation: IOU_0.5', float(iou_point_five))
+            exp.log_metric('Validation: IOU_0.75', float(iou_point_sevenfive))
 
         elif parser.dataset == 'csv' and parser.csv_val is not None:
 
