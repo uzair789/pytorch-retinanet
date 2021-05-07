@@ -46,7 +46,7 @@ def main(args=None):
 
     parser = parser.parse_args(args)
 
-    output_folder_path = os.path.exists(os.path.join(parser.output_folder, parser.exp_name))
+    output_folder_path = os.path.join(parser.output_folder, parser.exp_name)
     if not os.path.exists(output_folder_path):
         os.makedirs(output_folder_path)
 
@@ -153,6 +153,7 @@ def main(args=None):
         epoch_loss = []
 
         for iter_num, data in enumerate(dataloader_train):
+
             try:
                 optimizer.zero_grad()
 
@@ -197,12 +198,11 @@ def main(args=None):
 
             print('Evaluating dataset')
 
-            summary = coco_eval.evaluate_coco(dataset_val, retinanet)
-            ap1, iou_point_five, iou_point_sevenfive = summary[0:3]
+            coco_eval.evaluate_coco(dataset_val, retinanet, exp=exp)
 
-            exp.log_metric('Validation: ap1', float(ap1))
-            exp.log_metric('Validation: IOU_0.5', float(iou_point_five))
-            exp.log_metric('Validation: IOU_0.75', float(iou_point_sevenfive))
+            #exp.log_metric('Validation: ap1', float(ap1))
+            #exp.log_metric('Validation: IOU_0.5', float(iou_point_five))
+            #exp.log_metric('Validation: IOU_0.75', float(iou_point_sevenfive))
 
         elif parser.dataset == 'csv' and parser.csv_val is not None:
 
@@ -212,7 +212,7 @@ def main(args=None):
 
         scheduler.step(np.mean(epoch_loss))
 
-        torch.save(retinanet.module, os.path.join(parser.exp_name, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num)))
+        torch.save(retinanet.module, os.path.join(output_folder_path, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num)))
 
     retinanet.eval()
 

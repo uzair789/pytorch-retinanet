@@ -3,7 +3,7 @@ import json
 import torch
 
 
-def evaluate_coco(dataset, model, threshold=0.05):
+def evaluate_coco(dataset, model, threshold=0.05, exp=None):
 
     model.eval()
 
@@ -14,6 +14,7 @@ def evaluate_coco(dataset, model, threshold=0.05):
         image_ids = []
 
         for index in range(len(dataset)):
+
             data = dataset[index]
             scale = data['scale']
 
@@ -62,7 +63,9 @@ def evaluate_coco(dataset, model, threshold=0.05):
             # print progress
             print('{}/{}'.format(index, len(dataset)), end='\r')
 
+
         if not len(results):
+            print('in return if not reuslts')
             return
 
         # write output
@@ -77,8 +80,15 @@ def evaluate_coco(dataset, model, threshold=0.05):
         coco_eval.params.imgIds = image_ids
         coco_eval.evaluate()
         coco_eval.accumulate()
-        summary = coco_eval.summarize()
+        coco_eval.summarize()
+        summary = coco_eval.stats
+        print(summary, '<<--')
+        print('below summary')
+
+        exp.log_metric('Validation: ap1', float(summary[0]))
+        exp.log_metric('Validation: IOU_0.5', float(summary[1]))
+        exp.log_metric('Validation: IOU_0.75', float(summary[2]))
 
         model.train()
 
-        return summary
+        return
