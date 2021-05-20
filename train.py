@@ -188,7 +188,8 @@ def main(args=None):
                 classification_loss = classification_loss.mean()
                 regression_loss = regression_loss.mean()
 
-                loss = classification_loss + regression_loss + class_loss_distill + reg_loss_distill
+                # loss = classification_loss + regression_loss + class_loss_distill + reg_loss_distill
+                loss = class_loss_distill + reg_loss_distill
 
                 if bool(loss == 0):
                     continue
@@ -204,8 +205,8 @@ def main(args=None):
                 epoch_loss.append(float(loss))
 
                 print(
-                    'Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}'.format(
-                        epoch_num, iter_num, float(classification_loss), float(regression_loss), np.mean(loss_hist)))
+                    'Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f} | Class distill loss: {:1.5f} | Reg distill loss: {:1.5f}'.format(
+                        epoch_num, iter_num, float(classification_loss), float(regression_loss), np.mean(loss_hist), float(class_loss_distill), float(reg_loss_distill)))
 
                 exp.log_metric('Training: Distill Classification loss', float(class_loss_distill))
                 exp.log_metric('Training: Distill Regression loss', float(reg_loss_distill))
@@ -219,7 +220,6 @@ def main(args=None):
                 del reg_loss_distill
             except Exception as e:
                 print(e)
-                print('in exception')
                 continue
 
         if parser.dataset == 'coco':
