@@ -17,6 +17,7 @@ from retinanet import coco_eval
 from retinanet import csv_eval
 
 import neptune
+from icecream import ic
 
 assert torch.__version__.split('.')[0] == '1'
 
@@ -107,9 +108,15 @@ def main(args=None):
         sampler_val = AspectRatioBasedSampler(dataset_val, batch_size=1, drop_last=False)
         dataloader_val = DataLoader(dataset_val, num_workers=3, collate_fn=collater, batch_sampler=sampler_val)
 
+    distillation = True
     # Create the model
     if parser.depth == 18:
-        retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True)
+        retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
+        if distillation:
+            retinanet_teacher = model.resnet18(num_classes=dataset_train.num_classes(),
+                                               pretrained=True,
+                                               is_bin=False)
+        # exit()
     elif parser.depth == 34:
         retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=True)
     elif parser.depth == 50:
@@ -126,13 +133,16 @@ def main(args=None):
     if use_gpu:
         if torch.cuda.is_available():
             retinanet = retinanet.cuda()
+            retinanet_teacher = retinanet_teacher.cuda()
 
     if torch.cuda.is_available():
         retinanet = torch.nn.DataParallel(retinanet).cuda()
+        retinanet_teacher = torch.nn.DataParallel(retinanet_teacher).cuda()
     else:
         retinanet = torch.nn.DataParallel(retinanet)
 
     retinanet.training = True
+    retinanet_teacher.training = True
 
     optimizer = optim.Adam(retinanet.parameters(), lr=parser.lr)
 
@@ -142,6 +152,8 @@ def main(args=None):
 
     retinanet.train()
     retinanet.module.freeze_bn()
+
+    retinanet_teacher.module.freeze_bn()
 
     print('Num training images: {}'.format(len(dataset_train)))
 
@@ -161,14 +173,22 @@ def main(args=None):
                 optimizer.zero_grad()
 
                 if torch.cuda.is_available():
-                    classification_loss, regression_loss = retinanet([data['img'].cuda().float(), data['annot']])
+                    classification_loss, regression_loss, class_output, reg_output = retinanet([data['img'].cuda().float(), data['annot']])
+                    with torch.no_grad():
+                        # deactivating grads on teacher to save memory
+                        _, _, class_output_teacher, reg_output_teacher = retinanet_teacher([data['img'].cuda().float(), data['annot']])
                 else:
                     classification_loss, regression_loss = retinanet([data['img'].float(), data['annot']])
+
+
+                # distillatioon losses
+                class_loss_distill = torch.norm((class_output_teacher - class_output))
+                reg_loss_distill = torch.norm((reg_output_teacher - reg_output))
 
                 classification_loss = classification_loss.mean()
                 regression_loss = regression_loss.mean()
 
-                loss = classification_loss + regression_loss
+                loss = classification_loss + regression_loss + class_loss_distill + reg_loss_distill
 
                 if bool(loss == 0):
                     continue
@@ -187,14 +207,19 @@ def main(args=None):
                     'Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}'.format(
                         epoch_num, iter_num, float(classification_loss), float(regression_loss), np.mean(loss_hist)))
 
+                exp.log_metric('Training: Distill Classification loss', float(class_loss_distill))
+                exp.log_metric('Training: Distill Regression loss', float(reg_loss_distill))
                 exp.log_metric('Training: Classification loss', float(classification_loss))
                 exp.log_metric('Training: Regression loss', float(regression_loss))
                 exp.log_metric('Training: Totalloss', float(loss))
 
                 del classification_loss
                 del regression_loss
+                del class_loss_distill
+                del reg_loss_distill
             except Exception as e:
                 print(e)
+                print('in exception')
                 continue
 
         if parser.dataset == 'coco':

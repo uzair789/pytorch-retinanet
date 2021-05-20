@@ -2,13 +2,14 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from retinanet.binary_units import BinaryActivation, HardBinaryConv, BinaryLinear
+from retinanet.binary_units import BinaryActivation, HardBinaryConv
 
 
 def conv3x3(in_channels, out_channels, stride=1, is_bin=True):
-     if is_bin:
-         return HardBinaryConv(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
-     return nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
+
+    if is_bin:
+        return HardBinaryConv(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
+    return nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
 
 
 def activation(inplace=False, is_bin=True):
@@ -24,15 +25,18 @@ def conv3x3(in_planes, out_planes, stride=1):
                      padding=1, bias=False)
 '''
 
+
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, is_bin=False):
         super(BasicBlock, self).__init__()
-        self.conv1 = conv3x3(inplanes, planes, stride)
+        self.is_bin = is_bin
+        print('ib Basic Block, is_bin=', self.is_bin)
+        self.conv1 = conv3x3(inplanes, planes, stride, is_bin=self.is_bin)
         self.bn1 = nn.BatchNorm2d(planes)
-        self.relu = activation(inplace=True)
-        self.conv2 = conv3x3(planes, planes)
+        self.relu = activation(inplace=True, is_bin=self.is_bin)
+        self.conv2 = conv3x3(planes, planes, is_bin=self.is_bin)
         self.out_channels = planes
         self.bn2 = nn.BatchNorm2d(planes)
         self.downsample = downsample
@@ -94,6 +98,7 @@ class Bottleneck(nn.Module):
         out = self.relu(out)
 
         return out
+
 
 class BBoxTransform(nn.Module):
 
