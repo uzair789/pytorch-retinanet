@@ -5,13 +5,13 @@ import numpy as np
 from retinanet.binary_units import BinaryActivation, HardBinaryConv, BinaryLinear
 
 
-def conv3x3(in_channels, out_channels, stride=1, is_bin=True):
+def conv3x3(in_channels, out_channels, stride=1, is_bin=False):
      if is_bin:
          return HardBinaryConv(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
      return nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
 
 
-def activation(inplace=False, is_bin=True):
+def activation(inplace=False, is_bin=False):
     if is_bin:
         return BinaryActivation()
     return nn.ReLU(inplace=inplace)
