@@ -147,6 +147,8 @@ def main(args=None):
 
     for epoch_num in range(parser.epochs):
 
+        exp.log_metric('Current epoch', int(epoch_num))
+
         retinanet.train()
         retinanet.module.freeze_bn()
 
