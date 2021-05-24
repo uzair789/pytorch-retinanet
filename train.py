@@ -147,6 +147,7 @@ def main(args=None):
 
     for epoch_num in range(parser.epochs):
 
+        exp.log_metric('Current lr', float(optimizer.param_groups[0]['lr']))
         exp.log_metric('Current epoch', int(epoch_num))
 
         retinanet.train()
