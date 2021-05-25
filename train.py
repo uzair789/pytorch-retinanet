@@ -219,7 +219,7 @@ def main(args=None):
 
     retinanet.eval()
 
-    torch.save(retinanet, os.path.join(parser.exp_name, 'model_final.pt'))
+    torch.save(retinanet, os.path.join(output_folder_path, 'model_final.pt'))
 
 
 if __name__ == '__main__':
