@@ -111,16 +111,16 @@ def main(args=None):
     distillation = True
     # Create the model
     if parser.depth == 18:
-        #retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
-        retinanet = torch.load('results/resnet18_backbone_binary/coco_retinanet_11.pt')
+        retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
+        #retinanet = torch.load('results/resnet18_backbone_binary/coco_retinanet_11.pt')
         #retinanet.load_state_dict(checkpoint)
-        print('student loaded!')
-        print(retinanet)
+        #print('student loaded!')
+        #print(retinanet)
 
         if distillation:
-            retinanet_teacher = model.resnet18(num_classes=dataset_train.num_classes(),
-                                               pretrained=True,
-                                               is_bin=False)
+            #retinanet_teacher = model.resnet18(num_classes=dataset_train.num_classes(),
+            #                                   pretrained=True,
+            #                                   is_bin=False)
             retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_11.pt')
             # retinanet_teacher.load_state_dict(checkpoint_teacher)
             print('teacher loaded!')
