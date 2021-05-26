@@ -111,12 +111,20 @@ def main(args=None):
     distillation = True
     # Create the model
     if parser.depth == 18:
-        retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
+        #retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
+        retinanet = torch.load('results/resnet18_backbone_binary/coco_retinanet_11.pt')
+        #retinanet.load_state_dict(checkpoint)
+        print('student loaded!')
+        print(retinanet)
+
         if distillation:
             retinanet_teacher = model.resnet18(num_classes=dataset_train.num_classes(),
                                                pretrained=True,
                                                is_bin=False)
-        # exit()
+            retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_11.pt')
+            # retinanet_teacher.load_state_dict(checkpoint_teacher)
+            print('teacher loaded!')
+
     elif parser.depth == 34:
         retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=True)
     elif parser.depth == 50:
@@ -188,10 +196,11 @@ def main(args=None):
                 classification_loss = classification_loss.mean()
                 regression_loss = regression_loss.mean()
 
-                # loss = classification_loss + regression_loss + class_loss_distill + reg_loss_distill
-                loss = class_loss_distill + reg_loss_distill
+                loss = classification_loss + regression_loss + class_loss_distill + reg_loss_distill
+                # loss = class_loss_distill + reg_loss_distill
 
                 if bool(loss == 0):
+                    print('loss=0 hence continue')
                     continue
 
                 loss.backward()
