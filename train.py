@@ -111,8 +111,8 @@ def main(args=None):
     distillation = True
     # Create the model
     if parser.depth == 18:
-        retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
-        #retinanet = torch.load('results/resnet18_backbone_binary/coco_retinanet_11.pt')
+        # retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
+        retinanet = torch.load('results/resnet18_backbone_binary/coco_retinanet_11.pt')
         #retinanet.load_state_dict(checkpoint)
         #print('student loaded!')
         #print(retinanet)
@@ -181,10 +181,10 @@ def main(args=None):
                 optimizer.zero_grad()
 
                 if torch.cuda.is_available():
-                    classification_loss, regression_loss, class_output, reg_output = retinanet([data['img'].cuda().float(), data['annot']])
+                    classification_loss, regression_loss, class_output, reg_output, features = retinanet([data['img'].cuda().float(), data['annot']])
                     with torch.no_grad():
                         # deactivating grads on teacher to save memory
-                        _, _, class_output_teacher, reg_output_teacher = retinanet_teacher([data['img'].cuda().float(), data['annot']])
+                        _, _, class_output_teacher, reg_output_teacher, features_teacher = retinanet_teacher([data['img'].cuda().float(), data['annot']])
                 else:
                     classification_loss, regression_loss = retinanet([data['img'].float(), data['annot']])
 
@@ -192,11 +192,12 @@ def main(args=None):
                 # distillatioon losses
                 class_loss_distill = torch.norm((class_output_teacher - class_output))
                 reg_loss_distill = torch.norm((reg_output_teacher - reg_output))
+                features_loss_distill = sum([torch.norm(features_teacher[i] - features[i]) for i in range(len(features)) ])
 
                 classification_loss = classification_loss.mean()
                 regression_loss = regression_loss.mean()
 
-                loss = classification_loss + regression_loss + class_loss_distill + reg_loss_distill
+                loss = classification_loss + regression_loss + class_loss_distill + reg_loss_distill + features_loss_distill
                 # loss = class_loss_distill + reg_loss_distill
 
                 if bool(loss == 0):
@@ -219,6 +220,7 @@ def main(args=None):
 
                 exp.log_metric('Training: Distill Classification loss', float(class_loss_distill))
                 exp.log_metric('Training: Distill Regression loss', float(reg_loss_distill))
+                exp.log_metric('Training: Distill Features loss', float(features_loss_distill))
                 exp.log_metric('Training: Classification loss', float(classification_loss))
                 exp.log_metric('Training: Regression loss', float(regression_loss))
                 exp.log_metric('Training: Totalloss', float(loss))
