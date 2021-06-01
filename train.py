@@ -40,10 +40,13 @@ def main(args=None):
     parser.add_argument('--depth', help='Resnet depth, must be one of 18, 34, 50, 101, 152', type=int, default=50)
     parser.add_argument('--epochs', help='Number of epochs', type=int, default=100) # 100
     parser.add_argument('--batch_size', help='Batch size', type=int, default=2)
-    parser.add_argument('--lr', help='Number of epochs', type=float, default=1e-5)
+    parser.add_argument('--lr', help='Learning rate', type=float, default=1e-5)
     parser.add_argument('--caption', help='Any thing in particular about the experiment', type=str)
     parser.add_argument('--server', help='seerver name', type=str, default='ultron')
     parser.add_argument('--detector', help='detection algo', type=str, default='RetinaNet')
+    parser.add_argument('--cdc', help='Classification Distillation Coeff', type=float, default=1)
+    parser.add_argument('--rdc', help='Regression Distillation Coeff', type=float, default=1)
+    parser.add_argument('--fdc', help='Feature Distillation Coeff', type=float, default=1)
 
     parser = parser.parse_args(args)
 
@@ -59,7 +62,10 @@ def main(args=None):
               'batch_size': parser.batch_size,
               'lr': parser.lr,
               'caption': parser.caption,
-              'server': parser.server
+              'server': parser.server,
+              'classification_distill_coeff': parser.cdc,
+              'regression_distill_coeff': parser.rdc,
+              'feature_distill_coeff': parser.fdc
 
 
     }
@@ -189,10 +195,10 @@ def main(args=None):
                     classification_loss, regression_loss = retinanet([data['img'].float(), data['annot']])
 
 
-                # distillatioon losses
-                class_loss_distill = torch.norm((class_output_teacher - class_output))
-                reg_loss_distill = torch.norm((reg_output_teacher - reg_output))
-                features_loss_distill = sum([torch.norm(features_teacher[i] - features[i]) for i in range(len(features)) ])
+                # distillatioon losses with the loss coefficients
+                class_loss_distill = parser.cdc * torch.norm((class_output_teacher - class_output))
+                reg_loss_distill = parser.rdc * torch.norm((reg_output_teacher - reg_output))
+                features_loss_distill = parser.fdc * sum([torch.norm(features_teacher[i] - features[i]) for i in range(len(features)) ])
 
                 classification_loss = classification_loss.mean()
                 regression_loss = regression_loss.mean()
@@ -215,8 +221,8 @@ def main(args=None):
                 epoch_loss.append(float(loss))
 
                 print(
-                    'Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f} | Class distill loss: {:1.5f} | Reg distill loss: {:1.5f}'.format(
-                        epoch_num, iter_num, float(classification_loss), float(regression_loss), np.mean(loss_hist), float(class_loss_distill), float(reg_loss_distill)))
+                    'Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f} | Class distill loss: {:1.5f} | Reg distill loss: {:1.5f} | Feat distill loss: {:1.5f}'.format(
+                        epoch_num, iter_num, float(classification_loss), float(regression_loss), np.mean(loss_hist), float(class_loss_distill), float(reg_loss_distill), float(features_loss_distill)))
 
                 exp.log_metric('Training: Distill Classification loss', float(class_loss_distill))
                 exp.log_metric('Training: Distill Regression loss', float(reg_loss_distill))

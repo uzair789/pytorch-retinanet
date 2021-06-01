@@ -105,3 +105,4 @@ ENV/
 results/
 *.pth
 *.json
+kill_process.sh
