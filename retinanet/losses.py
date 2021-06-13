@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from icecream import ic
+
 def calc_iou(a, b):
     area = (b[:, 2] - b[:, 0]) * (b[:, 3] - b[:, 1])
 
@@ -38,6 +40,9 @@ class FocalLoss(nn.Module):
         anchor_ctr_x   = anchor[:, 0] + 0.5 * anchor_widths
         anchor_ctr_y   = anchor[:, 1] + 0.5 * anchor_heights
 
+
+        all_positive_indices = []
+
         for j in range(batch_size):
 
             classification = classifications[j, :, :]
@@ -45,7 +50,7 @@ class FocalLoss(nn.Module):
 
             bbox_annotation = annotations[j, :, :]
             bbox_annotation = bbox_annotation[bbox_annotation[:, 4] != -1]
-            
+
             classification = torch.clamp(classification, 1e-4, 1.0 - 1e-4)
 
             if bbox_annotation.shape[0] == 0:
@@ -62,7 +67,7 @@ class FocalLoss(nn.Module):
                     cls_loss = focal_weight * bce
                     classification_losses.append(cls_loss.sum())
                     regression_losses.append(torch.tensor(0).float())
-                    
+
                 else:
                     alpha_factor = torch.ones(classification.shape) * alpha
 
@@ -76,7 +81,7 @@ class FocalLoss(nn.Module):
                     cls_loss = focal_weight * bce
                     classification_losses.append(cls_loss.sum())
                     regression_losses.append(torch.tensor(0).float())
-                    
+
                 continue
 
             IoU = calc_iou(anchors[0, :, :], bbox_annotation[:, :4]) # num_anchors x num_annotations
@@ -97,6 +102,15 @@ class FocalLoss(nn.Module):
             positive_indices = torch.ge(IoU_max, 0.5)
 
             num_positive_anchors = positive_indices.sum()
+
+            if num_positive_anchors > 0:
+                all_positive_indices.append(positive_indices)
+                #classification_positive.append(classification[positive_indices, :])
+                #regression_positive.append(regression[positive_indices, :])
+            else:
+                all_positive_indices.append(-1)
+                #classification_positive.append(torch.tensor(0).float())
+                #regression_positive.append(torch.tensor(0).float())
 
             assigned_annotations = bbox_annotation[IoU_argmax, :]
 
@@ -171,7 +185,9 @@ class FocalLoss(nn.Module):
                     regression_losses.append(torch.tensor(0).float().cuda())
                 else:
                     regression_losses.append(torch.tensor(0).float())
+        return [torch.stack(classification_losses).mean(dim=0, keepdim=True),
+                torch.stack(regression_losses).mean(dim=0, keepdim=True),
+                all_positive_indices,
+               ]
 
-        return torch.stack(classification_losses).mean(dim=0, keepdim=True), torch.stack(regression_losses).mean(dim=0, keepdim=True)
 
-    

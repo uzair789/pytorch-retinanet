@@ -279,8 +279,8 @@ class ResNet(nn.Module):
 
         if self.training:
 
-            classification_loss, regression_loss = self.focalLoss(classification, regression, anchors, annotations)
-            return classification_loss, regression_loss,  classification, regression, features
+            classification_loss, regression_loss, all_positive_indices = self.focalLoss(classification, regression, anchors, annotations)
+            return classification_loss, regression_loss, classification, regression, all_positive_indices,  features
         else:
             transformed_anchors = self.regressBoxes(anchors, regression)
             transformed_anchors = self.clipBoxes(transformed_anchors, img_batch)

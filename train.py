@@ -183,27 +183,42 @@ def main(args=None):
 
         for iter_num, data in enumerate(dataloader_train):
 
-            try:
+                #try:
                 optimizer.zero_grad()
 
                 if torch.cuda.is_available():
-                    classification_loss, regression_loss, class_output, reg_output, features = retinanet([data['img'].cuda().float(), data['annot']])
+                    classification_loss, regression_loss, class_output, reg_output, positive_indices, features = retinanet([data['img'].cuda().float(), data['annot']])
                     with torch.no_grad():
                         # deactivating grads on teacher to save memory
-                        _, _, class_output_teacher, reg_output_teacher, features_teacher = retinanet_teacher([data['img'].cuda().float(), data['annot']])
+                        _, _, class_output_teacher, reg_output_teacher, positive_indices_teacher, features_teacher = retinanet_teacher([data['img'].cuda().float(), data['annot']])
                 else:
                     classification_loss, regression_loss = retinanet([data['img'].float(), data['annot']])
 
 
                 # distillatioon losses with the loss coefficients
-                class_loss_distill = parser.cdc * torch.norm((class_output_teacher - class_output))
-                reg_loss_distill = parser.rdc * torch.norm((reg_output_teacher - reg_output))
-                features_loss_distill = parser.fdc * sum([torch.norm(features_teacher[i] - features[i]) for i in range(len(features)) ])
+                # class_loss_distill = parser.cdc * torch.norm((class_output_teacher - class_output))
+                # reg_loss_distill = parser.rdc * torch.norm((reg_output_teacher - reg_output))
+                #import pdb
+                #pdb.set_trace()
+                #ic(len(class_output))
+                #ic(len(class_output_teacher))
+                #ic(len(reg_output))
+                #ic(len(reg_output_teacher))
+
+                #assert(len(class_output)==len(class_output_teacher))
+                #assert(len(reg_output)==len(reg_output_teacher))
+
+                #class_loss_distill = parser.cdc * sum([torch.norm(class_output_teacher[i, positive_indices_teacher[i], :] - class_output[i, positive_indices_teacher[i], :])
+                #                                       for i in range(parser.batch_size)])#/parser.batch_size
+                #reg_loss_distill = parser.rdc *  sum([torch.norm(reg_output_teacher[i, positive_indices_teacher[i], :] - reg_output[i, positive_indices_teacher[i], :])
+                #                                      for i in range(parser.batch_sie)])#/parser.batch_size
+
+                #features_loss_distill = parser.fdc * sum([torch.norm(features_teacher[i] - features[i]) for i in range(len(features)) ])
 
                 classification_loss = classification_loss.mean()
                 regression_loss = regression_loss.mean()
 
-                loss = classification_loss + regression_loss + class_loss_distill + reg_loss_distill + features_loss_distill
+                loss = classification_loss + regression_loss #+ class_loss_distill + reg_loss_distill + features_loss_distill
                 # loss = class_loss_distill + reg_loss_distill
 
                 if bool(loss == 0):
@@ -235,9 +250,9 @@ def main(args=None):
                 del regression_loss
                 del class_loss_distill
                 del reg_loss_distill
-            except Exception as e:
-                print(e)
-                continue
+                #except Exception as e:
+                #print(e)
+                #continue
 
         if parser.dataset == 'coco':
 
