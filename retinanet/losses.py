@@ -103,14 +103,15 @@ class FocalLoss(nn.Module):
 
             num_positive_anchors = positive_indices.sum()
 
-            if num_positive_anchors > 0:
-                all_positive_indices.append(positive_indices)
-                #classification_positive.append(classification[positive_indices, :])
-                #regression_positive.append(regression[positive_indices, :])
-            else:
-                all_positive_indices.append(-1)
-                #classification_positive.append(torch.tensor(0).float())
-                #regression_positive.append(torch.tensor(0).float())
+            all_positive_indices.append(positive_indices)
+            #if num_positive_anchors > 0:
+            #    all_positive_indices.append(positive_indices)
+            #    #classification_positive.append(classification[positive_indices, :])
+            #    #regression_positive.append(regression[positive_indices, :])
+            #else:
+            #    all_positive_indices.append(-1)
+            #    #classification_positive.append(torch.tensor(0).float())
+            #    #regression_positive.append(torch.tensor(0).float())
 
             assigned_annotations = bbox_annotation[IoU_argmax, :]
 
