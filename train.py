@@ -233,12 +233,12 @@ def main(args=None):
                        reg_output[i, positive_indices_teacher[i], :]).cuda()
                     c.append(c_loss)
                     r.append(r_loss)
-                #class_loss_distill = torch.tensor(c).mean()
-                #reg_loss_distill = torch.tensor(r).mean()
+                class_loss_distill = torch.tensor(c).mean()
+                reg_loss_distill = torch.tensor(r).mean()
 
                 # also experimenting with sum in comparison to the mean
-                class_loss_distill = parser.cdc * torch.tensor(c).sum()
-                reg_loss_distill = parser.rdc * torch.tensor(r).sum()
+                #class_loss_distill = parser.cdc * torch.tensor(c).sum()
+                #reg_loss_distill = parser.rdc * torch.tensor(r).sum()
                 ## <<--
 
                 # >>>> DIDNT WORK FOR POSITIVES ONLY DISTILLTION
