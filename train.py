@@ -255,7 +255,7 @@ def main(args=None):
                 classification_loss = classification_loss.mean()
                 regression_loss = regression_loss.mean()
 
-                loss = classification_loss + regression_loss #+ class_loss_distill + reg_loss_distill + features_loss_distill
+                loss = classification_loss + regression_loss + class_loss_distill + reg_loss_distill + features_loss_distill
                 # loss = class_loss_distill + reg_loss_distill
 
                 if bool(loss == 0):
