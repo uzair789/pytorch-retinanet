@@ -253,7 +253,6 @@ class ResNet(nn.Module):
                 layer.eval()
 
     def forward(self, inputs):
-
         if self.training:
             img_batch, annotations = inputs
         else:
@@ -278,7 +277,6 @@ class ResNet(nn.Module):
         anchors = self.anchors(img_batch)
 
         if self.training:
-
             classification_loss, regression_loss, all_positive_indices = self.focalLoss(classification, regression, anchors, annotations)
             return classification_loss, regression_loss, classification, regression, all_positive_indices,  features
         else:

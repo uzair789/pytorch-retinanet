@@ -194,51 +194,59 @@ def main(args=None):
                 else:
                     classification_loss, regression_loss = retinanet([data['img'].float(), data['annot']])
 
-
+                ## -->DISTILLATION ON FULL TENSOR
                 # distillatioon losses with the loss coefficients
                 # class_loss_distill = parser.cdc * torch.norm((class_output_teacher - class_output))
                 # reg_loss_distill = parser.rdc * torch.norm((reg_output_teacher - reg_output))
                 #import pdb
                 #pdb.set_trace()
-                #ic(len(class_output))
-                #ic(len(class_output_teacher))
-                #ic(len(reg_output))
-                #ic(len(reg_output_teacher))
+                #ic(class_output.shape)
+                #ic(class_output_teacher.shape)
+                #ic(reg_output.shape)
+                #ic(reg_output_teacher.shape)
+                #ic(len(positive_indices_teacher))
+                ## <--
 
 
+                ##-->> CHECKING FOR DISTILLATION ON THE POSITIVES ONLY
                 assert(len(class_output)==len(class_output_teacher))
                 assert(len(reg_output)==len(reg_output_teacher))
                 c = []
                 r = []
                 for i in range(parser.batch_size):
-                    #ic(positive_indices[i].shape)
-                    #ic(positive_indices_teacher[i].shape)
+                    #print('{}/{}'.format(i, parser.batch_size), '----')
 
+                    #ic(positive_indices[i].shape)
+                    #ic(class_output_teacher.device)
+                    #ic(positive_indices_teacher[i].shape)
+                    #ic(positive_indices_teacher[i].device)
+                    #continue
                     #ic(class_output_teacher[i, positive_indices_teacher[i], :].shape)
                     #ic(class_output[i, positive_indices_teacher[i], :].shape)
                     #ic(reg_output_teacher[i, positive_indices_teacher[i], :].shape)
                     #ic(reg_output[i, positive_indices_teacher[i], :].shape)
 
+
                     c_loss = torch.norm(class_output_teacher[i, positive_indices_teacher[i], :] -
-                               class_output[i, positive_indices_teacher[i], :])
+                               class_output[i, positive_indices_teacher[i], :]).cuda()
                     r_loss = torch.norm(reg_output_teacher[i, positive_indices_teacher[i], :] -
-                       reg_output[i, positive_indices_teacher[i], :])
+                       reg_output[i, positive_indices_teacher[i], :]).cuda()
                     c.append(c_loss)
                     r.append(r_loss)
                 #class_loss_distill = torch.tensor(c).mean()
                 #reg_loss_distill = torch.tensor(r).mean()
 
                 # also experimenting with sum in comparison to the mean
-                class_loss_distill = torch.tensor(c).sum()
-                reg_loss_distill = torch.tensor(r).sum()
+                class_loss_distill = parser.cdc * torch.tensor(c).sum()
+                reg_loss_distill = parser.rdc * torch.tensor(r).sum()
+                ## <<--
 
-
-
+                # >>>> DIDNT WORK FOR POSITIVES ONLY DISTILLTION
                 #class_loss_distill = parser.cdc * sum([torch.norm(class_output_teacher[i, positive_indices_teacher[i], :] - class_output[i, positive_indices_teacher[i], :])
                 #                                       for i in range(parser.batch_size)])#/parser.batch_size
                 #reg_loss_distill = parser.rdc *  sum([torch.norm(reg_output_teacher[i, positive_indices_teacher[i], :] - reg_output[i, positive_indices_teacher[i], :])
                 #                                      for i in range(parser.batch_sie)])#/parser.batch_size
-
+                ## <<<<
 
 
 
