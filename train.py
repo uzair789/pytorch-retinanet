@@ -207,7 +207,26 @@ def main(args=None):
                 #ic(len(positive_indices_teacher))
                 ## <--
 
+                ## ----->>>>
+                # trying the norm diff per feature and selecting top k diffs  (not doing top k right now)
+                c = []
+                r = []
+                for i in range(parser.batch_size):
+                    class_map, class_map_teacher = class_output[i, :, :], class_output_teacher[i, :, :]
+                    reg_map, reg_map_teacher = reg_output[i, :, :], reg_output_teacher[i, :, :]
+                    class_norms = torch.norm(class_map - class_map_teacher, dim=1).sum()
+                    reg_norms = torch.norm(reg_map - reg_map_teacher, dim=1).sum()
+                    c.append(class_norms)
+                    r.append(reg_norms)
 
+                class_loss_distill = parser.cdc * torch.tensor(c).sum()
+                reg_loss_distill = parser.rdc * torch.tensor(r).sum()
+
+
+                ## -----<<<<
+
+
+                '''
                 ##-->> CHECKING FOR DISTILLATION ON THE POSITIVES ONLY
                 assert(len(class_output)==len(class_output_teacher))
                 assert(len(reg_output)==len(reg_output_teacher))
@@ -251,6 +270,7 @@ def main(args=None):
                 #ic(reg_loss_distill)
 
                 ## <<--
+                '''
 
                 # >>>> DIDNT WORK FOR POSITIVES ONLY DISTILLTION
                 #class_loss_distill = parser.cdc * sum([torch.norm(class_output_teacher[i, positive_indices_teacher[i], :] - class_output[i, positive_indices_teacher[i], :])
