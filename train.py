@@ -227,18 +227,29 @@ def main(args=None):
                     #ic(reg_output[i, positive_indices_teacher[i], :].shape)
 
 
-                    c_loss = torch.norm(class_output_teacher[i, positive_indices_teacher[i], :] -
-                               class_output[i, positive_indices_teacher[i], :]).cuda()
-                    r_loss = torch.norm(reg_output_teacher[i, positive_indices_teacher[i], :] -
-                       reg_output[i, positive_indices_teacher[i], :]).cuda()
+                    #c_loss = torch.norm(class_output_teacher[i, positive_indices_teacher[i], :] -
+                    #           class_output[i, positive_indices_teacher[i], :]).cuda()
+                    #r_loss = torch.norm(reg_output_teacher[i, positive_indices_teacher[i], :] -
+                    #   reg_output[i, positive_indices_teacher[i], :]).cuda()
+                    c_loss = (class_output_teacher[i, positive_indices_teacher[i], :] -
+                              class_output[i, positive_indices_teacher[i], :]).cuda()
+                    r_loss = (reg_output_teacher[i, positive_indices_teacher[i], :] -
+                              reg_output[i, positive_indices_teacher[i], :]).cuda()
                     c.append(c_loss)
                     r.append(r_loss)
                 #class_loss_distill = torch.tensor(c).mean()
                 #reg_loss_distill = torch.tensor(r).mean()
+                c = torch.vstack(c)
+                r = torch.vstack(r)
+                #ic(c.shape)
+                #ic(r.shape)
 
                 # also experimenting with sum in comparison to the mean
-                class_loss_distill = parser.cdc * torch.tensor(c).sum()
-                reg_loss_distill = parser.rdc * torch.tensor(r).sum()
+                class_loss_distill = parser.cdc * torch.norm(c)
+                reg_loss_distill = parser.rdc * torch.norm(r)
+                #ic(class_loss_distill)
+                #ic(reg_loss_distill)
+
                 ## <<--
 
                 # >>>> DIDNT WORK FOR POSITIVES ONLY DISTILLTION
