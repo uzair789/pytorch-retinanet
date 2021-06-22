@@ -219,8 +219,8 @@ def main(args=None):
                     c.append(class_norms)
                     r.append(reg_norms)
 
-                class_loss_distill = parser.cdc * torch.tensor(c).sum()
-                reg_loss_distill = parser.rdc * torch.tensor(r).sum()
+                class_loss_distill = parser.cdc * torch.tensor(c).mean()
+                reg_loss_distill = parser.rdc * torch.tensor(r).mean()
 
 
                 ## -----<<<<
