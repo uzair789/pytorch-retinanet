@@ -208,14 +208,14 @@ def main(args=None):
                 ## <--
 
                 ## ----->>>>
-                # trying the norm diff per feature and selecting top k diffs  (not doing top k right now)
+                # trying the norm diff per tensor and selecting top k diffs  (not doing top k right now)
                 c = []
                 r = []
                 for i in range(parser.batch_size):
                     class_map, class_map_teacher = class_output[i, :, :], class_output_teacher[i, :, :]
                     reg_map, reg_map_teacher = reg_output[i, :, :], reg_output_teacher[i, :, :]
-                    class_norms = torch.norm(class_map - class_map_teacher, dim=1).sum()
-                    reg_norms = torch.norm(reg_map - reg_map_teacher, dim=1).sum()
+                    class_norms = torch.norm(class_map - class_map_teacher)
+                    reg_norms = torch.norm(reg_map - reg_map_teacher)
                     c.append(class_norms)
                     r.append(reg_norms)
 
