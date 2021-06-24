@@ -73,6 +73,7 @@ def main(args=None):
     exp = neptune.create_experiment(name=parser.exp_name, params=PARAMS, tags=['resnet'+str(parser.depth),
                                                                                 parser.detector,
                                                                                 parser.dataset,
+                                                                                parser.caption,
                                                                                 parser.server])
 
     # Create the data loaders
@@ -196,8 +197,8 @@ def main(args=None):
 
                 ## -->DISTILLATION ON FULL TENSOR
                 # distillatioon losses with the loss coefficients
-                # class_loss_distill = parser.cdc * torch.norm((class_output_teacher - class_output))
-                # reg_loss_distill = parser.rdc * torch.norm((reg_output_teacher - reg_output))
+                class_loss_distill = parser.cdc * torch.norm((class_output_teacher - class_output))
+                reg_loss_distill = parser.rdc * torch.norm((reg_output_teacher - reg_output))
                 #import pdb
                 #pdb.set_trace()
                 #ic(class_output.shape)
@@ -207,6 +208,7 @@ def main(args=None):
                 #ic(len(positive_indices_teacher))
                 ## <--
 
+                '''
                 ## ----->>>>
                 # trying the norm diff per feature and selecting top k diffs  (not doing top k right now)
                 c = []
@@ -224,7 +226,7 @@ def main(args=None):
 
 
                 ## -----<<<<
-
+                '''
 
                 '''
                 ##-->> CHECKING FOR DISTILLATION ON THE POSITIVES ONLY
