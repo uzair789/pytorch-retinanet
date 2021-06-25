@@ -5,8 +5,8 @@ CDC=1
 RDC=1
 FDC=0
 
-BATCH_SIZES=(2 4 6 10)
-i=0
+BATCH_SIZES=(10)
+i=6
 for batch_size in ${BATCH_SIZES[@]}; do
 
     EXP_NAME="resnet18_backbone_binary_distillation_head_batchSize_${batch_size}"
