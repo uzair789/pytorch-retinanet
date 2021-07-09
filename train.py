@@ -161,7 +161,7 @@ def main(args=None):
 
         for iter_num, data in enumerate(dataloader_train):
 
-                #try:
+            try:
                 optimizer.zero_grad()
 
                 if torch.cuda.is_available():
@@ -197,9 +197,9 @@ def main(args=None):
 
                 del classification_loss
                 del regression_loss
-                #except Exception as e:
-                #print(e)
-                #continue
+            except Exception as e:
+                print(e)
+                continue
 
         if parser.dataset == 'coco':
 

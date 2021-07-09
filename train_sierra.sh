@@ -10,11 +10,11 @@ NET_TYPE=('layer1_binary' 'layer12_binary' 'layer123_binary')
 
 for net_type in ${NET_TYPE[@]}; do
 
-    EXP_NAME="resnet18_${NET_TYPE}_backbone_binary"
+    EXP_NAME="resnet18_${net_type}_backbone_binary"
     #EXP_NAME="resnet18_backbone_binary_distillation_head_on_positive_indices_normloss_2cards_cdc${CDC}_rdc${RDC}_fdc${FDC}"
-    echo "net_type=${NET_TYPE}_gpus=${i},$(($i+1))"
+    echo "net_type=${net_type}_gpus=${i},$(($i+1))"
     export CUDA_VISIBLE_DEVICES="${i},$(($i+1))"
-    screen -dmS "${NET_TYPE}_gpus_${i}_$(($i+1))" bash -c "workon retinanet; python train.py --dataset coco --coco_path /media/apple/Datasets/coco --depth 18 --output_folder ${OUTPUT_FOLDER} --exp_name ${EXP_NAME} --lr ${LR} --batch_size ${batch_size} --epochs 12 --net_type ${net_type} --caption progressive_distillation_pretrains --server sierra"
+    screen -dmS "${net_type}_gpus_${i}_$(($i+1))" bash -c "workon retinanet; python train.py --dataset coco --coco_path /media/apple/Datasets/coco --depth 18 --output_folder ${OUTPUT_FOLDER} --exp_name ${EXP_NAME} --lr ${LR} --batch_size ${batch_size} --epochs 12 --net_type ${net_type} --caption progressive_distillation_pretrains --server sierra"
     i=$(($i+2))
 done
 
