@@ -169,17 +169,17 @@ class ClassificationModel(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, num_classes, block, layers, is_bin=False):
+    def __init__(self, num_classes, block, layers, is_bin=[False, False, False, False]):
         self.inplanes = 64
         super(ResNet, self).__init__()
         self.conv1 = conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = activation(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, 64, layers[0], is_bin=is_bin)
-        self.layer2 = self._make_layer(block, 128, layers[1], stride=2, is_bin=is_bin)
-        self.layer3 = self._make_layer(block, 256, layers[2], stride=2, is_bin=is_bin)
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=2, is_bin=is_bin)
+        self.layer1 = self._make_layer(block, 64, layers[0], is_bin=is_bin[0])
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2, is_bin=is_bin[1])
+        self.layer3 = self._make_layer(block, 256, layers[2], stride=2, is_bin=is_bin[2])
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2, is_bin=is_bin[3])
 
         if block == BasicBlock:
             # fpn_sizes = [self.layer2[layers[1] - 1].conv2.out_channels, self.layer3[layers[2] - 1].conv2.out_channels,
@@ -321,11 +321,29 @@ class ResNet(nn.Module):
             return [finalScores, finalAnchorBoxesIndexes, finalAnchorBoxesCoordinates]
 
 
-def resnet18(num_classes, pretrained=False, **kwargs):
+def resnet18(arch, num_classes, pretrained=False, **kwargs):
     """Constructs a ResNet-18 model.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
+    if arch == 'full_precision':
+        is_bin=[False, False, False, False]
+    elif arch='binary_net':
+        is_bin=[True, True, True, True]
+    elif arch='layer1_binary':
+        is_bin=[True, False, False, False]
+    elif arch='layer12_binary':
+        is_bin=[True, True, False, False]
+    elif arch='layer123_binary':
+        is_bin=[True, True, True, False]
+    elif arch='layer4_binary':
+        is_bin=[False, False, False, True]
+    elif arch='layer43_binary':
+        is_bin=[False, False, True, True]
+    elif arch='layer432_binary':
+        is_bin=[False, True, True, True]
+    else:
+        raise(ValueError, 'arch not defined [full_precision, binary_net, layer1_binary, layer12_binary, layer123_binary, layer4_binary, layer43_binary, layer432_biinary]')
     model = ResNet(num_classes, BasicBlock, [2, 2, 2, 2], **kwargs)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet18'], model_dir='.'), strict=False)
