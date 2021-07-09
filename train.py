@@ -43,6 +43,7 @@ def main(args=None):
     parser.add_argument('--caption', help='Any thing in particular about the experiment', type=str)
     parser.add_argument('--server', help='seerver name', type=str, default='ultron')
     parser.add_argument('--detector', help='detection algo', type=str, default='RetinaNet')
+    parser.add_argument('--net_type', help='type of network', type=str, default='full_precision')
 
     parser = parser.parse_args(args)
 
@@ -58,14 +59,17 @@ def main(args=None):
               'batch_size': parser.batch_size,
               'lr': parser.lr,
               'caption': parser.caption,
-              'server': parser.server
+              'server': parser.server,
+              'net_type': parser.net_type
 
 
     }
 
     exp = neptune.create_experiment(name=parser.exp_name, params=PARAMS, tags=['resnet'+str(parser.depth),
+                                                                                parser.caption,
                                                                                 parser.detector,
                                                                                 parser.dataset,
+                                                                                parser.net_type,
                                                                                 parser.server])
 
     # Create the data loaders
@@ -109,7 +113,7 @@ def main(args=None):
 
     # Create the model
     if parser.depth == 18:
-        retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True)
+        retinanet = model.resnet18(parser.net_type, num_classes=dataset_train.num_classes(), pretrained=True)
     elif parser.depth == 34:
         retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=True)
     elif parser.depth == 50:
@@ -157,7 +161,7 @@ def main(args=None):
 
         for iter_num, data in enumerate(dataloader_train):
 
-            try:
+                #try:
                 optimizer.zero_grad()
 
                 if torch.cuda.is_available():
@@ -193,9 +197,9 @@ def main(args=None):
 
                 del classification_loss
                 del regression_loss
-            except Exception as e:
-                print(e)
-                continue
+                #except Exception as e:
+                #print(e)
+                #continue
 
         if parser.dataset == 'coco':
 
