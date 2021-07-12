@@ -5,7 +5,7 @@ OUTPUT_FOLDER='./results'
 LR=0.0001
 batch_size=8
 i=0
-NET_TYPE=('layer1_binary' 'layer12_binary' 'layer123_binary')
+NET_TYPE=('layer4_binary' 'layer43_binary' 'layer432_binary')
 # for batch_size in ${BATCH_SIZES[@]}; do
 
 for net_type in ${NET_TYPE[@]}; do
