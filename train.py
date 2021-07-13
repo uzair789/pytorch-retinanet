@@ -71,6 +71,7 @@ def main(args=None):
     }
 
     exp = neptune.create_experiment(name=parser.exp_name, params=PARAMS, tags=['resnet'+str(parser.depth),
+                                                                                parser.caption,
                                                                                 parser.detector,
                                                                                 parser.dataset,
                                                                                 parser.server])
@@ -118,7 +119,7 @@ def main(args=None):
     # Create the model
     if parser.depth == 18:
         # retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
-        retinanet = torch.load('results/resnet18_backbone_binary/coco_retinanet_11.pt')
+        retinanet = torch.load('results/resnet18_layer1_binary_backbone_binary/coco_retinanet_11.pt')
         #retinanet.load_state_dict(checkpoint)
         #print('student loaded!')
         #print(retinanet)
@@ -196,8 +197,8 @@ def main(args=None):
 
                 ## -->DISTILLATION ON FULL TENSOR
                 # distillatioon losses with the loss coefficients
-                # class_loss_distill = parser.cdc * torch.norm((class_output_teacher - class_output))
-                # reg_loss_distill = parser.rdc * torch.norm((reg_output_teacher - reg_output))
+                class_loss_distill = parser.cdc * torch.norm((class_output_teacher - class_output))
+                reg_loss_distill = parser.rdc * torch.norm((reg_output_teacher - reg_output))
                 #import pdb
                 #pdb.set_trace()
                 #ic(class_output.shape)
@@ -209,6 +210,7 @@ def main(args=None):
 
 
                 ##-->> CHECKING FOR DISTILLATION ON THE POSITIVES ONLY
+                """
                 assert(len(class_output)==len(class_output_teacher))
                 assert(len(reg_output)==len(reg_output_teacher))
                 c = []
@@ -249,7 +251,7 @@ def main(args=None):
                 reg_loss_distill = parser.rdc * torch.norm(r)
                 #ic(class_loss_distill)
                 #ic(reg_loss_distill)
-
+                """
                 ## <<--
 
                 # >>>> DIDNT WORK FOR POSITIVES ONLY DISTILLTION
