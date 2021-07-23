@@ -130,7 +130,7 @@ def main(args=None):
             #                                   pretrained=True,
             #                                   is_bin=False)
             #retinanet_teacher = torch.load('results/resnet18_layer1_binary_backbone_binary/coco_retinanet_11.pt')
-            retinanet_teacher = torch.load('results/resnet18_layer12_binary_backbone_distillation_head_teacher_layer1_cdc1_rdc1_fdc0/coco_retinanet_11.pt')
+            retinanet_teacher = torch.load('results/resnet18_layer123_binary_backbone_distillation_head_teacher_layer12_cdc1_rdc1_fdc0/coco_retinanet_11.pt')
             #retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_11.pt')
             # retinanet_teacher.load_state_dict(checkpoint_teacher)
             print('teacher loaded!')
