@@ -192,6 +192,9 @@ class ResNet(nn.Module):
         else:
             raise ValueError("Block type {} not understood".format(block))
 
+        print(fpn_sizes)
+        print(len(self.layer2))
+        print('in resnet')
         self.fpn = PyramidFeatures(fpn_sizes[0], fpn_sizes[1], fpn_sizes[2])
 
         self.regressionModel = RegressionModel(256)

@@ -1,7 +1,7 @@
-export CUDA_VISIBLE_DEVICES='0,1,2,3'
+export CUDA_VISIBLE_DEVICES='4,5'
 
 OUTPUT_FOLDER='./results'
-EXP_NAME='resnet18_backbone_binary_24Epochs'
+EXP_NAME='BiRealNet18_backbone_binary_Imagenet_pretrained_backbone'
 
-python train.py --dataset coco --coco_path /media/School/Datasets/coco --depth 18 --output_folder ${OUTPUT_FOLDER} --exp_name ${EXP_NAME} --lr 0.0001 --batch_size 8 --epochs 24
+python train.py --dataset coco --arch 'BiRealNet18' --pretrain --coco_path /media/School/Datasets/coco --depth 18 --output_folder ${OUTPUT_FOLDER} --exp_name ${EXP_NAME} --lr 0.0001 --batch_size 8 --epochs 12
 
