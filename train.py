@@ -46,6 +46,7 @@ def main(args=None):
     parser.add_argument('--detector', help='detection algo', type=str, default='RetinaNet')
     parser.add_argument('--arch', help='model architecture', type=str)
     parser.add_argument('--pretrain', default=False, action='store_true')
+    parser.add_argument('--freeze_batchnorm', default=False, action='store_true')
 
     parser = parser.parse_args(args)
 
@@ -63,8 +64,8 @@ def main(args=None):
               'caption': parser.caption,
               'server': parser.server,
               'arch': parser.arch,
-              'pretrain': parser.pretrain
-
+              'pretrain': parser.pretrain,
+              'freeze_batchorm': parser.freeze_batchnorm
 
     }
 
@@ -120,11 +121,11 @@ def main(args=None):
         if parser.pretrain:
             checkpoint_path = '/media/Rozhok/Bi-Real-net/pytorch_implementation/BiReal18_34/models/imagenet_baseline/checkpoint.pth.tar'
         retinanet = birealnet18(checkpoint_path, num_classes=dataset_train.num_classes())
-    elif parser.depth == 34:
+    elif parser.depth == 34 and parser.arch == 'Resnet':
         retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
-    elif parser.depth == 50:
+    elif parser.depth == 50 and parser.arch == 'Resnet':
         retinanet = model.resnet50(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
-    elif parser.depth == 101:
+    elif parser.depth == 101 and parser.arch=='Resnet':
         retinanet = model.resnet101(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
     elif parser.depth == 152:
         retinanet = model.resnet152(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
@@ -151,6 +152,7 @@ def main(args=None):
     loss_hist = collections.deque(maxlen=500)
 
     retinanet.train()
+    #if parser.freeze_batchnorm:
     retinanet.module.freeze_bn()
 
     print('Num training images: {}'.format(len(dataset_train)))
@@ -161,6 +163,7 @@ def main(args=None):
         exp.log_metric('Current epoch', int(epoch_num))
 
         retinanet.train()
+        #if parser.freeze_batchnorm:
         retinanet.module.freeze_bn()
 
         epoch_loss = []
