@@ -71,7 +71,6 @@ def main(args=None):
     exp = neptune.create_experiment(name=parser.exp_name, params=PARAMS, tags=[parser.arch,
                                                                                 parser.detector,
                                                                                 parser.dataset,
-                                                                                parser.net_type,
                                                                                 parser.server])
 
     # Create the data loaders
@@ -119,7 +118,7 @@ def main(args=None):
     elif parser.depth == 18 and parser.arch == 'BiRealNet18':
         checkpoint_path = None
         if parser.pretrain:
-            checkpoint_path = '/media/Rozhok/Bi-Real-net/pytorch_implementation/BiReal18_34/models/imagenet_baseline/checkpoint.pth.tar'
+            checkpoint_path = '/media/apple/pytorch-retinanet/BiRealNet18_Imagenet_pretrain/imagenet_baseline/checkpoint.pth.tar'
         retinanet = birealnet18(checkpoint_path, num_classes=dataset_train.num_classes())
     elif parser.depth == 34:
         retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)

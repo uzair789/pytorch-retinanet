@@ -6,6 +6,8 @@ __pycache__/
 # C extensions
 *.so
 
+BiRealNet18_Imagenet_pretrain/
+
 # Distribution / packaging
 .Python
 env/

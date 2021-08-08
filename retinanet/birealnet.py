@@ -126,8 +126,8 @@ class BiRealNet(nn.Module):
 
         self.fpn = PyramidFeatures(fpn_sizes[0], fpn_sizes[1], fpn_sizes[2])
 
-        self.regressionModel = RegressionModel(256)
-        self.classificationModel = ClassificationModel(256, num_classes=num_classes)
+        self.regressionModel = RegressionModel(256, is_bin=True)
+        self.classificationModel = ClassificationModel(256, num_classes=num_classes, is_bin=True)
 
         self.anchors = Anchors()
 

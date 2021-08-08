@@ -81,35 +81,41 @@ class PyramidFeatures(nn.Module):
 
 
 class RegressionModel(nn.Module):
-    def __init__(self, num_features_in, num_anchors=9, feature_size=256):
+    def __init__(self, num_features_in, num_anchors=9, feature_size=256, is_bin=False):
         super(RegressionModel, self).__init__()
 
+        # not binarizing because treating this as the first layer dealing with input 
         self.conv1 = conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
         self.act1 = activation()
 
-        self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act2 = activation()
+        self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+        self.act2 = activation(is_bin=is_bin)
 
-        self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act3 = activation()
+        self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+        self.act3 = activation(is_bin=is_bin)
 
-        self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act4 = activation()
+        self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+        self.act4 = activation(is_bin=is_bin)
 
         self.output = conv2d(feature_size, num_anchors * 4, kernel_size=3, padding=1)
 
     def forward(self, x):
+
+
         out = self.conv1(x)
-        out = self.act1(out)
+        #out = self.act1(out)
 
-        out = self.conv2(out)
         out = self.act2(out)
+        out = self.conv2(out)
+        #out = self.act2(out)
 
-        out = self.conv3(out)
         out = self.act3(out)
+        out = self.conv3(out)
+        #out = self.act3(out)
 
-        out = self.conv4(out)
         out = self.act4(out)
+        out = self.conv4(out)
+        #out = self.act4(out)
 
         out = self.output(out)
 
@@ -120,7 +126,7 @@ class RegressionModel(nn.Module):
 
 
 class ClassificationModel(nn.Module):
-    def __init__(self, num_features_in, num_anchors=9, num_classes=80, prior=0.01, feature_size=256):
+    def __init__(self, num_features_in, num_anchors=9, num_classes=80, prior=0.01, feature_size=256, is_bin=False):
         super(ClassificationModel, self).__init__()
 
         self.num_classes = num_classes
@@ -129,30 +135,33 @@ class ClassificationModel(nn.Module):
         self.conv1 = conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
         self.act1 = activation()
 
-        self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act2 = activation()
+        self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+        self.act2 = activation(is_bin=is_bin)
 
-        self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act3 = activation()
+        self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+        self.act3 = activation(is_bin=is_bin)
 
-        self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act4 = activation()
+        self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+        self.act4 = activation(is_bin=is_bin)
 
         self.output = conv2d(feature_size, num_anchors * num_classes, kernel_size=3, padding=1)
         self.output_act = nn.Sigmoid()
 
     def forward(self, x):
         out = self.conv1(x)
-        out = self.act1(out)
+        #out = self.act1(out)
 
-        out = self.conv2(out)
         out = self.act2(out)
+        out = self.conv2(out)
+        #out = self.act2(out)
 
-        out = self.conv3(out)
         out = self.act3(out)
+        out = self.conv3(out)
+        #out = self.act3(out)
 
-        out = self.conv4(out)
         out = self.act4(out)
+        out = self.conv4(out)
+        #out = self.act4(out)
 
         out = self.output(out)
         out = self.output_act(out)
@@ -192,13 +201,10 @@ class ResNet(nn.Module):
         else:
             raise ValueError("Block type {} not understood".format(block))
 
-        print(fpn_sizes)
-        print(len(self.layer2))
-        print('in resnet')
         self.fpn = PyramidFeatures(fpn_sizes[0], fpn_sizes[1], fpn_sizes[2])
 
-        self.regressionModel = RegressionModel(256)
-        self.classificationModel = ClassificationModel(256, num_classes=num_classes)
+        self.regressionModel = RegressionModel(256, is_bin=True)
+        self.classificationModel = ClassificationModel(256, num_classes=num_classes, is_bin=True)
 
         self.anchors = Anchors()
 
