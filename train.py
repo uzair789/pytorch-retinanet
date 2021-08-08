@@ -9,6 +9,7 @@ import torch.optim as optim
 from torchvision import transforms
 
 from retinanet import model
+from retinanet.birealnet import birealnet18
 from retinanet.dataloader import CocoDataset, CSVDataset, collater, Resizer, AspectRatioBasedSampler, Augmenter, \
     Normalizer
 from torch.utils.data import DataLoader
@@ -43,7 +44,8 @@ def main(args=None):
     parser.add_argument('--caption', help='Any thing in particular about the experiment', type=str)
     parser.add_argument('--server', help='seerver name', type=str, default='ultron')
     parser.add_argument('--detector', help='detection algo', type=str, default='RetinaNet')
-    parser.add_argument('--net_type', help='type of network', type=str, default='full_precision')
+    parser.add_argument('--arch', help='model architecture', type=str)
+    parser.add_argument('--pretrain', default=False, action='store_true')
 
     parser = parser.parse_args(args)
 
@@ -60,13 +62,13 @@ def main(args=None):
               'lr': parser.lr,
               'caption': parser.caption,
               'server': parser.server,
-              'net_type': parser.net_type
+              'arch': parser.arch,
+              'pretrain': parser.pretrain
 
 
     }
 
-    exp = neptune.create_experiment(name=parser.exp_name, params=PARAMS, tags=['resnet'+str(parser.depth),
-                                                                                parser.caption,
+    exp = neptune.create_experiment(name=parser.exp_name, params=PARAMS, tags=[parser.arch,
                                                                                 parser.detector,
                                                                                 parser.dataset,
                                                                                 parser.net_type,
@@ -112,16 +114,21 @@ def main(args=None):
         dataloader_val = DataLoader(dataset_val, num_workers=3, collate_fn=collater, batch_sampler=sampler_val)
 
     # Create the model
-    if parser.depth == 18:
-        retinanet = model.resnet18(parser.net_type, num_classes=dataset_train.num_classes(), pretrained=True)
+    if parser.depth == 18 and parser.arch == 'Resnet':
+        retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
+    elif parser.depth == 18 and parser.arch == 'BiRealNet18':
+        checkpoint_path = None
+        if parser.pretrain:
+            checkpoint_path = '/media/Rozhok/Bi-Real-net/pytorch_implementation/BiReal18_34/models/imagenet_baseline/checkpoint.pth.tar'
+        retinanet = birealnet18(checkpoint_path, num_classes=dataset_train.num_classes())
     elif parser.depth == 34:
-        retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=True)
+        retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
     elif parser.depth == 50:
-        retinanet = model.resnet50(num_classes=dataset_train.num_classes(), pretrained=True)
+        retinanet = model.resnet50(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
     elif parser.depth == 101:
-        retinanet = model.resnet101(num_classes=dataset_train.num_classes(), pretrained=True)
+        retinanet = model.resnet101(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
     elif parser.depth == 152:
-        retinanet = model.resnet152(num_classes=dataset_train.num_classes(), pretrained=True)
+        retinanet = model.resnet152(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
     else:
         raise ValueError('Unsupported model depth, must be one of 18, 34, 50, 101, 152')
 
