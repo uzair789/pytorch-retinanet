@@ -102,19 +102,20 @@ class RegressionModel(nn.Module):
     def forward(self, x):
 
 
-        out = self.conv1(x)
+        out1 = self.conv1(x)
         #out = self.act1(out)
 
-        out = self.act2(out)
-        out = self.conv2(out)
+        out = self.act2(out1)
+        out2 = self.conv2(out) + out1
         #out = self.act2(out)
 
-        out = self.act3(out)
-        out = self.conv3(out)
+
+        out = self.act3(out2)
+        out3 = self.conv3(out) + out2
         #out = self.act3(out)
 
-        out = self.act4(out)
-        out = self.conv4(out)
+        out = self.act4(out3)
+        out = self.conv4(out) + out3
         #out = self.act4(out)
 
         out = self.output(out)
@@ -148,19 +149,19 @@ class ClassificationModel(nn.Module):
         self.output_act = nn.Sigmoid()
 
     def forward(self, x):
-        out = self.conv1(x)
+        out1 = self.conv1(x)
         #out = self.act1(out)
 
-        out = self.act2(out)
-        out = self.conv2(out)
+        out = self.act2(out1)
+        out2 = self.conv2(out) + out1
         #out = self.act2(out)
 
-        out = self.act3(out)
-        out = self.conv3(out)
+        out = self.act3(out2)
+        out3 = self.conv3(out) + out2
         #out = self.act3(out)
 
-        out = self.act4(out)
-        out = self.conv4(out)
+        out = self.act4(out3)
+        out = self.conv4(out) + out3
         #out = self.act4(out)
 
         out = self.output(out)
