@@ -9,6 +9,8 @@ import torch.optim as optim
 from torchvision import transforms
 
 from retinanet import model
+#from retinanet.birealnet import
+
 from retinanet.dataloader import CocoDataset, CSVDataset, collater, Resizer, AspectRatioBasedSampler, Augmenter, \
     Normalizer
 from torch.utils.data import DataLoader
@@ -118,9 +120,10 @@ def main(args=None):
     distillation = True
     # Create the model
     if parser.depth == 18:
+        model_folder = 'BiRealNet18_backbone_binary_from_scratch'
         # retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
         #retinanet = torch.load('results/resnet18_layer123_binary_backbone_binary/coco_retinanet_11.pt')
-        retinanet = torch.load('results/resnet18_backbone_binary/coco_retinanet_11.pt')
+        retinanet = torch.load('results/{}/coco_retinanet_11.pt'.format(model_folder))
         #retinanet.load_state_dict(checkpoint)
         #print('student loaded!')
         #print(retinanet)
@@ -130,8 +133,8 @@ def main(args=None):
             #                                   pretrained=True,
             #                                   is_bin=False)
             #retinanet_teacher = torch.load('results/resnet18_layer1_binary_backbone_binary/coco_retinanet_11.pt')
-            retinanet_teacher = torch.load('results/resnet18_layer123_binary_backbone_distillation_head_teacher_layer12_cdc1_rdc1_fdc0/coco_retinanet_11.pt')
-            #retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_11.pt')
+            #retinanet_teacher = torch.load('results/resnet18_layer123_binary_backbone_distillation_head_teacher_layer12_cdc1_rdc1_fdc0/coco_retinanet_11.pt')
+            retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_11.pt')
             # retinanet_teacher.load_state_dict(checkpoint_teacher)
             print('teacher loaded!')
 
