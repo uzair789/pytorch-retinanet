@@ -113,6 +113,8 @@ class RegressionModel(nn.Module):
         self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
         self.act3 = activation(is_bin=is_bin)
 
+        self.se3 = SELayer(feature_size)
+
         self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
         self.act4 = activation(is_bin=is_bin)
 
@@ -135,6 +137,8 @@ class RegressionModel(nn.Module):
         out = self.act3(out2)
         out3 = self.conv3(out) + out2
         #out = self.act3(out)
+
+        out3 = self.se3(out3)
 
         out = self.act4(out3)
         out = self.conv4(out) + out3
@@ -168,9 +172,10 @@ class ClassificationModel(nn.Module):
         self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
         self.act3 = activation(is_bin=is_bin)
 
+        self.se3 = SELayer(feature_size)
+
         self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
         self.act4 = activation(is_bin=is_bin)
-
 
         self.se4 = SELayer(feature_size)
 
@@ -190,6 +195,8 @@ class ClassificationModel(nn.Module):
         out = self.act3(out2)
         out3 = self.conv3(out) + out2
         #out = self.act3(out)
+
+        out3 = self.se3(out3)
 
         out = self.act4(out3)
         out = self.conv4(out) + out3
