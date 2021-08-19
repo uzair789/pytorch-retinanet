@@ -108,12 +108,16 @@ class RegressionModel(nn.Module):
         self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
         self.act2 = activation(is_bin=is_bin)
 
+        self.se2 = SELayer(feature_size)
+
         self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
         self.act3 = activation(is_bin=is_bin)
 
         self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
         self.act4 = activation(is_bin=is_bin)
 
+        self.se4 = SELayer(feature_size)
+        
         self.output = conv2d(feature_size, num_anchors * 4, kernel_size=3, padding=1)
 
     def forward(self, x):
@@ -126,6 +130,7 @@ class RegressionModel(nn.Module):
         out2 = self.conv2(out) + out1
         #out = self.act2(out)
 
+        out2 = self.se2(out2)
 
         out = self.act3(out2)
         out3 = self.conv3(out) + out2
@@ -135,6 +140,8 @@ class RegressionModel(nn.Module):
         out = self.conv4(out) + out3
         #out = self.act4(out)
 
+        out = self.se4(out)
+        
         out = self.output(out)
 
         # out is B x C x W x H, with C = 4*num_anchors
@@ -156,11 +163,16 @@ class ClassificationModel(nn.Module):
         self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
         self.act2 = activation(is_bin=is_bin)
 
+        self.se2 = SELayer(feature_size)
+
         self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
         self.act3 = activation(is_bin=is_bin)
 
         self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
         self.act4 = activation(is_bin=is_bin)
+
+
+        self.se4 = SELayer(feature_size)
 
         self.output = conv2d(feature_size, num_anchors * num_classes, kernel_size=3, padding=1)
         self.output_act = nn.Sigmoid()
@@ -172,6 +184,8 @@ class ClassificationModel(nn.Module):
         out = self.act2(out1)
         out2 = self.conv2(out) + out1
         #out = self.act2(out)
+ 
+        out2 = self.se2(out2)
 
         out = self.act3(out2)
         out3 = self.conv3(out) + out2
@@ -180,6 +194,8 @@ class ClassificationModel(nn.Module):
         out = self.act4(out3)
         out = self.conv4(out) + out3
         #out = self.act4(out)
+
+        out = self.se4(out)
 
         out = self.output(out)
         out = self.output_act(out)
