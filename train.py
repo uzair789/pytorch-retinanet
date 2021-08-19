@@ -145,8 +145,8 @@ def main(args=None):
     retinanet.training = True
 
     optimizer = optim.Adam(retinanet.parameters(), lr=parser.lr)
-
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
+    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lambda step : (1.0-step/parser.epochs), last_epoch=-1)
+    #scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
 
     loss_hist = collections.deque(maxlen=500)
 
@@ -162,6 +162,9 @@ def main(args=None):
 
         retinanet.train()
         retinanet.module.freeze_bn()
+
+        # added by Uzair
+        scheduler.step()
 
         epoch_loss = []
 
@@ -223,7 +226,7 @@ def main(args=None):
 
             mAP = csv_eval.evaluate(dataset_val, retinanet)
 
-        scheduler.step(np.mean(epoch_loss))
+        #scheduler.step(np.mean(epoch_loss))
 
         torch.save(retinanet.module, os.path.join(output_folder_path, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num)))
 
