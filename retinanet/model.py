@@ -129,22 +129,22 @@ class RegressionModel(nn.Module):
         #out = self.act1(out)
 
         out = self.act2(out1)
-        out2 = self.conv2(out) + out1
+        out2 = self.conv2(out)# + out1
         #out = self.act2(out)
 
-        out2 = self.se2(out2)
+        out2 = self.se2(out2) + out1
 
         out = self.act3(out2)
-        out3 = self.conv3(out) + out2
+        out3 = self.conv3(out)# + out2
         #out = self.act3(out)
 
-        out3 = self.se3(out3)
+        out3 = self.se3(out3) + out2
 
         out = self.act4(out3)
-        out = self.conv4(out) + out3
+        out = self.conv4(out) #+ out3
         #out = self.act4(out)
 
-        out = self.se4(out)
+        out = self.se4(out) + out3
         
         out = self.output(out)
 
@@ -187,22 +187,22 @@ class ClassificationModel(nn.Module):
         #out = self.act1(out)
 
         out = self.act2(out1)
-        out2 = self.conv2(out) + out1
+        out2 = self.conv2(out) #+ out1
         #out = self.act2(out)
  
-        out2 = self.se2(out2)
+        out2 = self.se2(out2) + out1
 
         out = self.act3(out2)
-        out3 = self.conv3(out) + out2
+        out3 = self.conv3(out) #+ out2
         #out = self.act3(out)
 
-        out3 = self.se3(out3)
+        out3 = self.se3(out3) + out2
 
         out = self.act4(out3)
-        out = self.conv4(out) + out3
+        out = self.conv4(out) #+ out3
         #out = self.act4(out)
 
-        out = self.se4(out)
+        out = self.se4(out) + out3
 
         out = self.output(out)
         out = self.output_act(out)
