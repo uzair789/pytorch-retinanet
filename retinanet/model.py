@@ -30,11 +30,12 @@ class SELayer(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, x):
+    def forward(self, x, x1):
+        """x represents the input and x1 is the output to the bin conv """
         b, c, _, _ = x.size()
         y = self.avg_pool(x).view(b, c)
         y = self.fc(y).view(b, c, 1, 1)
-        return x * y.expand_as(x)
+        return x1 * y.expand_as(x)
 
 
 def conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True, is_bin=False):
@@ -132,19 +133,19 @@ class RegressionModel(nn.Module):
         out2 = self.conv2(out) + out1
         #out = self.act2(out)
 
-        out2 = self.se2(out2)
+        out2 = self.se2(out1, out2)
 
         out = self.act3(out2)
         out3 = self.conv3(out) + out2
         #out = self.act3(out)
 
-        out3 = self.se3(out3)
+        out3 = self.se3(out2, out3)
 
         out = self.act4(out3)
         out = self.conv4(out) + out3
         #out = self.act4(out)
 
-        out = self.se4(out)
+        out = self.se4(out3, out)
         
         out = self.output(out)
 
@@ -190,19 +191,19 @@ class ClassificationModel(nn.Module):
         out2 = self.conv2(out) + out1
         #out = self.act2(out)
  
-        out2 = self.se2(out2)
+        out2 = self.se2(out1, out2)
 
         out = self.act3(out2)
         out3 = self.conv3(out) + out2
         #out = self.act3(out)
 
-        out3 = self.se3(out3)
+        out3 = self.se3(out2, out3)
 
         out = self.act4(out3)
         out = self.conv4(out) + out3
         #out = self.act4(out)
 
-        out = self.se4(out)
+        out = self.se4(out3, out)
 
         out = self.output(out)
         out = self.output_act(out)
