@@ -19,6 +19,23 @@ model_urls = {
     'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
 }
 
+class SELayer(nn.Module):
+    def __init__(self, channel, reduction=16):
+        super(SELayer, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channel, channel // reduction, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channel // reduction, channel, bias=False),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        y = self.avg_pool(x).view(b, c)
+        y = self.fc(y).view(b, c, 1, 1)
+        return x * y.expand_as(x)
+
 
 def conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True, is_bin=False):
      if is_bin:
@@ -81,24 +98,32 @@ class PyramidFeatures(nn.Module):
 
 
 class RegressionModel(nn.Module):
-    def __init__(self, num_features_in, num_anchors=9, feature_size=256):
+    def __init__(self, num_features_in, num_anchors=9, feature_size=256, is_bin=False):
         super(RegressionModel, self).__init__()
 
+        # not binarizing because treating this as the first layer dealing with input
+        self.is_bin = is_bin
         self.conv1 = conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
         self.act1 = activation()
 
-        self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act2 = activation()
+        self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+        self.act2 = activation(is_bin=is_bin)
 
-        self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act3 = activation()
+        self.se2 = SELayer(feature_size)
 
-        self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act4 = activation()
+        self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+        self.act3 = activation(is_bin=is_bin)
+
+        self.se3 = SELayer(feature_size)
+
+        self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+        self.act4 = activation(is_bin=is_bin)
+
+        self.se4 = SELayer(feature_size)
 
         self.output = conv2d(feature_size, num_anchors * 4, kernel_size=3, padding=1)
 
-    def forward(self, x):
+    def forward_regular(self, x):
         out = self.conv1(x)
         out = self.act1(out)
 
@@ -118,30 +143,77 @@ class RegressionModel(nn.Module):
 
         return out.contiguous().view(out.shape[0], -1, 4)
 
+    def forward_binary(self, x):
+
+        out1 = self.conv1(x)
+        #out = self.act1(out)
+
+        out = self.act2(out1)
+        out2 = self.conv2(out) + out1
+        #out = self.act2(out)
+
+        out2 = self.se2(out2)
+
+        out = self.act3(out2)
+        out3 = self.conv3(out) + out2
+        #out = self.act3(out)
+
+        out3 = self.se3(out3)
+
+        out = self.act4(out3)
+        out = self.conv4(out) + out3
+        #out = self.act4(out)
+
+        out = self.se4(out)
+
+        out = self.output(out)
+
+        # out is B x C x W x H, with C = 4*num_anchors
+        out = out.permute(0, 2, 3, 1)
+
+        return out.contiguous().view(out.shape[0], -1, 4)
+
+
+    def forward(self, x, is_bin=False):
+        if is_bin:
+            #print('In Binary forward, Regression')
+            return self.forward_binary(x)
+
+        #print('In Regular forward, Regression')
+        return self.forward_regular(x)
+
+
 
 class ClassificationModel(nn.Module):
-    def __init__(self, num_features_in, num_anchors=9, num_classes=80, prior=0.01, feature_size=256):
+    def __init__(self, num_features_in, num_anchors=9, num_classes=80, prior=0.01, feature_size=256, is_bin=False):
         super(ClassificationModel, self).__init__()
 
+        self.is_bin = is_bin
         self.num_classes = num_classes
         self.num_anchors = num_anchors
 
         self.conv1 = conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
         self.act1 = activation()
 
-        self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act2 = activation()
+        self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+        self.act2 = activation(is_bin=is_bin)
 
-        self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act3 = activation()
+        self.se2 = SELayer(feature_size)
 
-        self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
-        self.act4 = activation()
+        self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+        self.act3 = activation(is_bin=is_bin)
+
+        self.se3 = SELayer(feature_size)
+
+        self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+        self.act4 = activation(is_bin=is_bin)
+
+        self.se4 = SELayer(feature_size)
 
         self.output = conv2d(feature_size, num_anchors * num_classes, kernel_size=3, padding=1)
         self.output_act = nn.Sigmoid()
 
-    def forward(self, x):
+    def forward_regular(self, x):
         out = self.conv1(x)
         out = self.act1(out)
 
@@ -166,20 +238,63 @@ class ClassificationModel(nn.Module):
 
         return out2.contiguous().view(x.shape[0], -1, self.num_classes)
 
+    def forward_binary(self, x):
+        out1 = self.conv1(x)
+        #out = self.act1(out)
+
+        out = self.act2(out1)
+        out2 = self.conv2(out) + out1
+        #out = self.act2(out)
+
+        out2 = self.se2(out2)
+
+        out = self.act3(out2)
+        out3 = self.conv3(out) + out2
+        #out = self.act3(out)
+
+        out3 = self.se3(out3)
+
+        out = self.act4(out3)
+        out = self.conv4(out) + out3
+        #out = self.act4(out)
+
+        out = self.se4(out)
+
+        out = self.output(out)
+        out = self.output_act(out)
+
+        # out is B x C x W x H, with C = n_classes + n_anchors
+        out1 = out.permute(0, 2, 3, 1)
+
+        batch_size, width, height, channels = out1.shape
+
+        out2 = out1.view(batch_size, width, height, self.num_anchors, self.num_classes)
+
+        return out2.contiguous().view(x.shape[0], -1, self.num_classes)
+
+    def forward(self, x, is_bin=False):
+        if is_bin:
+            #print('In Binary forward, Classification')
+            return self.forward_binary(x)
+
+        #print('In Regular forward, Classification')
+        return self.forward_regular(x)
+
+
 
 class ResNet(nn.Module):
 
-    def __init__(self, num_classes, block, layers, is_bin=False):
+    def __init__(self, num_classes, block, layers, is_bin=[False, False, False, False]):
         self.inplanes = 64
         super(ResNet, self).__init__()
         self.conv1 = conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = activation(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, 64, layers[0], is_bin=is_bin)
-        self.layer2 = self._make_layer(block, 128, layers[1], stride=2, is_bin=is_bin)
-        self.layer3 = self._make_layer(block, 256, layers[2], stride=2, is_bin=is_bin)
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=2, is_bin=is_bin)
+        self.layer1 = self._make_layer(block, 64, layers[0], is_bin=is_bin[0])
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2, is_bin=is_bin[1])
+        self.layer3 = self._make_layer(block, 256, layers[2], stride=2, is_bin=is_bin[2])
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2, is_bin=is_bin[3])
 
         if block == BasicBlock:
             # fpn_sizes = [self.layer2[layers[1] - 1].conv2.out_channels, self.layer3[layers[2] - 1].conv2.out_channels,
@@ -277,8 +392,8 @@ class ResNet(nn.Module):
         anchors = self.anchors(img_batch)
 
         if self.training:
-            classification_loss, regression_loss, all_positive_indices = self.focalLoss(classification, regression, anchors, annotations)
-            return classification_loss, regression_loss, classification, regression, all_positive_indices,  features
+            classification_loss, regression_loss, all_positive_indices  = self.focalLoss(classification, regression, anchors, annotations)
+            return classification_loss, regression_loss, classification, regression, all_positive_indices, features
         else:
             transformed_anchors = self.regressBoxes(anchors, regression)
             transformed_anchors = self.clipBoxes(transformed_anchors, img_batch)
@@ -321,12 +436,30 @@ class ResNet(nn.Module):
             return [finalScores, finalAnchorBoxesIndexes, finalAnchorBoxesCoordinates]
 
 
-def resnet18(num_classes, pretrained=False, **kwargs):
+def resnet18(arch, num_classes, pretrained=False, **kwargs):
     """Constructs a ResNet-18 model.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(num_classes, BasicBlock, [2, 2, 2, 2], **kwargs)
+    if arch == 'full_precision':
+        is_bin=[False, False, False, False]
+    elif arch=='binary_net':
+        is_bin=[True, True, True, True]
+    elif arch=='layer1_binary':
+        is_bin=[True, False, False, False]
+    elif arch=='layer12_binary':
+        is_bin=[True, True, False, False]
+    elif arch=='layer123_binary':
+        is_bin=[True, True, True, False]
+    elif arch=='layer4_binary':
+        is_bin=[False, False, False, True]
+    elif arch=='layer43_binary':
+        is_bin=[False, False, True, True]
+    elif arch=='layer432_binary':
+        is_bin=[False, True, True, True]
+    else:
+        raise(ValueError, 'arch not defined [full_precision, binary_net, layer1_binary, layer12_binary, layer123_binary, layer4_binary, layer43_binary, layer432_biinary]')
+    model = ResNet(num_classes, BasicBlock, [2, 2, 2, 2], is_bin, **kwargs)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet18'], model_dir='.'), strict=False)
     return model

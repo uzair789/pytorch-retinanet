@@ -126,8 +126,8 @@ class BiRealNet(nn.Module):
 
         self.fpn = PyramidFeatures(fpn_sizes[0], fpn_sizes[1], fpn_sizes[2])
 
-        self.regressionModel = RegressionModel(256)
-        self.classificationModel = ClassificationModel(256, num_classes=num_classes)
+        self.regressionModel = RegressionModel(256, is_bin=True)
+        self.classificationModel = ClassificationModel(256, num_classes=num_classes, is_bin=True)
 
         self.anchors = Anchors()
 
@@ -217,9 +217,9 @@ class BiRealNet(nn.Module):
         x4 = self.layer4(x3)
 
         features = self.fpn([x2, x3, x4])
-        regression = torch.cat([self.regressionModel(feature) for feature in features], dim=1)
+        regression = torch.cat([self.regressionModel(feature, is_bin=True) for feature in features], dim=1)
 
-        classification = torch.cat([self.classificationModel(feature) for feature in features], dim=1)
+        classification = torch.cat([self.classificationModel(feature, is_bin=True) for feature in features], dim=1)
 
         anchors = self.anchors(img_batch)
 

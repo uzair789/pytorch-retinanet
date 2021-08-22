@@ -120,13 +120,14 @@ def main(args=None):
     distillation = True
     # Create the model
     if parser.depth == 18:
-        model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch'
+        #model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch'
+        model_folder = 'BiRealNet18_backbone_plus_SE_attention_3_heads_with_shortcuts_LambdaLR'
         # retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
         #retinanet = torch.load('results/resnet18_layer123_binary_backbone_binary/coco_retinanet_11.pt')
         retinanet = torch.load('results/{}/coco_retinanet_11.pt'.format(model_folder))
         #retinanet.load_state_dict(checkpoint)
-        #print('student loaded!')
-        #print(retinanet)
+        print('student loaded!')
+        print(retinanet)
 
         if distillation:
             #retinanet_teacher = model.resnet18(num_classes=dataset_train.num_classes(),
@@ -137,6 +138,7 @@ def main(args=None):
             retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_11.pt')
             # retinanet_teacher.load_state_dict(checkpoint_teacher)
             print('teacher loaded!')
+            print(retinanet_teacher)
 
     elif parser.depth == 34:
         retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=True)
@@ -167,7 +169,8 @@ def main(args=None):
 
     optimizer = optim.Adam(retinanet.parameters(), lr=parser.lr)
 
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
+    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lambda step : (1.0-step/parser.epochs), last_epoch=-1)
+    #scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
 
     loss_hist = collections.deque(maxlen=500)
 
@@ -186,6 +189,8 @@ def main(args=None):
         retinanet.train()
         retinanet.module.freeze_bn()
 
+        scheduler.step()
+
         epoch_loss = []
 
         for iter_num, data in enumerate(dataloader_train):
@@ -194,9 +199,11 @@ def main(args=None):
                 optimizer.zero_grad()
 
                 if torch.cuda.is_available():
+                    print('student forward')
                     classification_loss, regression_loss, class_output, reg_output, positive_indices, features = retinanet([data['img'].cuda().float(), data['annot']])
                     with torch.no_grad():
                         # deactivating grads on teacher to save memory
+                        print('teacher forward -------->>>')
                         _, _, class_output_teacher, reg_output_teacher, positive_indices_teacher, features_teacher = retinanet_teacher([data['img'].cuda().float(), data['annot']])
                 else:
                     classification_loss, regression_loss = retinanet([data['img'].float(), data['annot']])
@@ -326,7 +333,7 @@ def main(args=None):
 
             mAP = csv_eval.evaluate(dataset_val, retinanet)
 
-        scheduler.step(np.mean(epoch_loss))
+        #scheduler.step(np.mean(epoch_loss))
 
         torch.save(retinanet.module, os.path.join(output_folder_path, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num)))
 
