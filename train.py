@@ -120,8 +120,8 @@ def main(args=None):
     distillation = True
     # Create the model
     if parser.depth == 18:
-        #model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch'
-        model_folder = 'BiRealNet18_backbone_plus_SE_attention_3_heads_with_shortcuts_LambdaLR'
+        model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch'
+        #model_folder = 'BiRealNet18_backbone_plus_SE_attention_3_heads_with_shortcuts_LambdaLR'
         # retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
         #retinanet = torch.load('results/resnet18_layer123_binary_backbone_binary/coco_retinanet_11.pt')
         retinanet = torch.load('results/{}/coco_retinanet_11.pt'.format(model_folder))
@@ -169,8 +169,8 @@ def main(args=None):
 
     optimizer = optim.Adam(retinanet.parameters(), lr=parser.lr)
 
-    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lambda step : (1.0-step/parser.epochs), last_epoch=-1)
-    #scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
+    #scheduler = optim.lr_scheduler.LambdaLR(optimizer, lambda step : (1.0-step/parser.epochs), last_epoch=-1)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
 
     loss_hist = collections.deque(maxlen=500)
 
@@ -189,7 +189,7 @@ def main(args=None):
         retinanet.train()
         retinanet.module.freeze_bn()
 
-        scheduler.step()
+        #scheduler.step()
 
         epoch_loss = []
 
@@ -333,7 +333,7 @@ def main(args=None):
 
             mAP = csv_eval.evaluate(dataset_val, retinanet)
 
-        #scheduler.step(np.mean(epoch_loss))
+        scheduler.step(np.mean(epoch_loss))
 
         torch.save(retinanet.module, os.path.join(output_folder_path, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num)))
 
