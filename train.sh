@@ -1,11 +1,11 @@
-export CUDA_VISIBLE_DEVICES='4,5'
+export CUDA_VISIBLE_DEVICES='6,7'
 
 OUTPUT_FOLDER='./results'
 CDC=1
 RDC=1
 FDC=0
-CLC=0.001
-RLC=0.001
+CLC=0.0001
+RLC=0.0001
 LR=0.00001
 #EXP_NAME="dummy_resnet18_backbone_binary_distillation_head_plus_featuresWithCoeff${FDC}"
 #EXP_NAME="resnet18_binary_backbone_distillation_head_teacher_layer1_cdc${CDC}_rdc${RDC}_fdc${FDC}"
