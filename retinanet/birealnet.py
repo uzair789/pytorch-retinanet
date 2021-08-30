@@ -110,16 +110,16 @@ class RegressionModel(nn.Module):
         #out = self.act1(out)
 
         out = self.act2(out1)
-        out2 = self.conv2(out) #+ out1
+        out2 = self.conv2(out) + out1
         #out = self.act2(out)
 
 
         out = self.act3(out2)
-        out3 = self.conv3(out) #+ out2
+        out3 = self.conv3(out) + out2
         #out = self.act3(out)
 
         out = self.act4(out3)
-        out = self.conv4(out) #+ out3
+        out = self.conv4(out) + out3
         #out = self.act4(out)
 
         out = self.output(out)
@@ -157,15 +157,15 @@ class ClassificationModel(nn.Module):
          #out = self.act1(out)
 
          out = self.act2(out1)
-         out2 = self.conv2(out) #+ out1
+         out2 = self.conv2(out) + out1
          #out = self.act2(out)
 
          out = self.act3(out2)
-         out3 = self.conv3(out) #+ out2
+         out3 = self.conv3(out) + out2
          #out = self.act3(out)
 
          out = self.act4(out3)
-         out = self.conv4(out) #+ out3
+         out = self.conv4(out) + out3
          #out = self.act4(out)
 
          out = self.output(out)
@@ -282,8 +282,8 @@ class BiRealNet(nn.Module):
 
         self.fpn = PyramidFeatures(fpn_sizes[0], fpn_sizes[1], fpn_sizes[2])
 
-        self.regressionModel = RegressionModel(256)
-        self.classificationModel = ClassificationModel(256, num_classes=num_classes)
+        self.regressionModel = RegressionModel(256, is_bin=True)
+        self.classificationModel = ClassificationModel(256, num_classes=num_classes, is_bin=True)
 
         self.anchors = Anchors()
 
