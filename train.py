@@ -120,7 +120,7 @@ def main(args=None):
     distillation = True
     # Create the model
     if parser.depth == 18:
-        model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch'
+        model_folder = 'BiRealNet18_backbone_plus_SE_attention_3_heads_with_shortcuts_LambdaLR'
         # retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
         #retinanet = torch.load('results/resnet18_layer123_binary_backbone_binary/coco_retinanet_11.pt')
         retinanet = torch.load('results/{}/coco_retinanet_11.pt'.format(model_folder))
