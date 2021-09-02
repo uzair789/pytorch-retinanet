@@ -197,12 +197,23 @@ def flops_binary():
     total_flops_bn = (backbone_flops_bn + reg_head_flops_bn + class_head_flops_bn)/64
 
     total_flops = total_flops_fp + total_flops_bn
+
+    unit = 1000000000
+
     print('Binary version without se total flops = {} Gigaflops'.format(total_flops/1000000000))
 
     # with se version
     total_flops_fp += class_head_flops_fp_se + reg_head_flops_fp_se
     total_flops_with_se = total_flops_fp + total_flops_bn
     print('Binary version with se total flops = {} Gigaflops '.format(total_flops_with_se/1000000000))
+
+    print('SE FLOPS reg se flops | fp = {} gflops | bn = {} gflops'.format(reg_head_flops_fp_se/unit, reg_head_flops_fp_se/(64*unit)))
+    print('SE FLOPS cls se flops | fp = {} gflops | bn = {} gflops'.format(class_head_flops_fp_se/unit, class_head_flops_fp_se/(64*unit)))
+
+    print('FPN FLOPS | fp = {} gflops | bn = {} gflops'.format(fpn_flops_fp/unit, fpn_flops_fp/(64*unit)))
+
+
+
 
 flops_full_precision()
 flops_binary()
