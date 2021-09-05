@@ -124,7 +124,7 @@ class BiRealNet(nn.Module):
         else:
             raise ValueError("Block type {} not understood".format(block))
 
-        self.fpn = PyramidFeatures(fpn_sizes[0], fpn_sizes[1], fpn_sizes[2])
+        self.fpn = PyramidFeatures(fpn_sizes[0], fpn_sizes[1], fpn_sizes[2], is_bin=True)
 
         self.regressionModel = RegressionModel(256, is_bin=True)
         self.classificationModel = ClassificationModel(256, num_classes=num_classes, is_bin=True)

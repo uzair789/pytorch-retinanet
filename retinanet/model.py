@@ -10,6 +10,7 @@ from retinanet import losses
 # adding the binarization units
 from retinanet.binary_units import BinaryActivation, HardBinaryConv, BinaryLinear
 
+from icecream import ic
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -32,50 +33,76 @@ def activation(inplace=False, is_bin=False):
     return nn.ReLU(inplace=inplace)
 
 class PyramidFeatures(nn.Module):
-    def __init__(self, C3_size, C4_size, C5_size, feature_size=256):
+    def __init__(self, C3_size, C4_size, C5_size, feature_size=256, is_bin=False):
         super(PyramidFeatures, self).__init__()
 
         # upsample C5 to get P5 from the FPN paper
         self.P5_1 = conv2d(C5_size, feature_size, kernel_size=1, stride=1, padding=0)
         self.P5_upsampled = nn.Upsample(scale_factor=2, mode='nearest')
-        self.P5_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1)
+        self.P5_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1, is_bin=is_bin)
+        self.act5 = activation(is_bin=is_bin)
 
         # add P5 elementwise to C4
         self.P4_1 = conv2d(C4_size, feature_size, kernel_size=1, stride=1, padding=0)
         self.P4_upsampled = nn.Upsample(scale_factor=2, mode='nearest')
-        self.P4_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1)
+        self.P4_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1, is_bin=is_bin)
+        self.act4 = activation(is_bin=is_bin)
 
         # add P4 elementwise to C3
         self.P3_1 = conv2d(C3_size, feature_size, kernel_size=1, stride=1, padding=0)
-        self.P3_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1)
+        self.P3_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1, is_bin=is_bin)
+        self.act3 = activation(is_bin=is_bin)
 
         # "P6 is obtained via a 3x3 stride-2 conv on C5"
-        self.P6 = conv2d(C5_size, feature_size, kernel_size=3, stride=2, padding=1)
+        self.P6 = conv2d(C5_size, feature_size, kernel_size=3, stride=2, padding=1, is_bin=is_bin)
+        self.act6 = activation(is_bin=is_bin)
+        #self.avgPool6 = nn.AdaptiveAvgPool2d((10,13))        
+        self.P6_down = conv2d(C5_size, feature_size, kernel_size=1, stride=2, padding=0)
 
         # "P7 is computed by applying ReLU followed by a 3x3 stride-2 conv on P6"
-        self.P7_1 = activation()
-        self.P7_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=2, padding=1)
+        self.P7_1 = activation(is_bin=is_bin)
+        self.P7_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=2, padding=1, is_bin=is_bin)
+        self.avgPool7 = nn.AdaptiveAvgPool2d((7,5))       
+        self.P7_down = conv2d(feature_size, feature_size, kernel_size=1, stride=2, padding=0)
 
     def forward(self, inputs):
         C3, C4, C5 = inputs
 
         P5_x = self.P5_1(C5)
         P5_upsampled_x = self.P5_upsampled(P5_x)
-        P5_x = self.P5_2(P5_x)
+        P5_act = self.act5(P5_x)
+        P5_x = self.P5_2(P5_act) + P5_x
 
         P4_x = self.P4_1(C4)
         P4_x = P5_upsampled_x + P4_x
         P4_upsampled_x = self.P4_upsampled(P4_x)
-        P4_x = self.P4_2(P4_x)
+        P4_act = self.act4(P4_x)
+        P4_x = self.P4_2(P4_act) + P4_x
 
         P3_x = self.P3_1(C3)
         P3_x = P3_x + P4_upsampled_x
-        P3_x = self.P3_2(P3_x)
+        P3_act = self.act3(P3_x)
+        P3_x = self.P3_2(P3_act) + P3_x
 
-        P6_x = self.P6(C5)
+        C5_act = self.act6(C5)
+        x6 = self.P6(C5_act)
+        #y6 = self.avgPool6(C5)
+        y6 = self.P6_down(C5)
+        #ic(C5.shape)
+        #ic(x6.shape)
+        #ic(y6.shape)
+        #print('---')
+        P6_x = x6 + y6
 
         P7_x = self.P7_1(P6_x)
-        P7_x = self.P7_2(P7_x)
+        x7= self.P7_2(P7_x)
+        y7 = self.P7_down(P6_x)
+        #ic(P6_x.shape)
+        #ic(x7.shape)
+        #ic(y7.shape)
+        #print('***')
+        P7_x = x7 + y7
+
 
         return [P3_x, P4_x, P5_x, P6_x, P7_x]
 
