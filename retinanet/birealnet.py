@@ -78,7 +78,8 @@ class BasicBlock(nn.Module):
 
         self.binary_activation = BinaryActivation()
         self.binary_conv = HardBinaryConv(inplanes, planes, stride=stride)
-        self.bn1 = nn.BatchNorm2d(planes)
+        #self.bn1 = nn.BatchNorm2d(planes)
+        self.bn1 = nn.BatchNorm2d(inplanes)
 
         self.downsample = downsample
         self.stride = stride
@@ -88,9 +89,10 @@ class BasicBlock(nn.Module):
     def forward(self, x):
         residual = x
 
-        out = self.binary_activation(x)
+        out = self.bn1(x)
+        out = self.binary_activation(out)
         out = self.binary_conv(out)
-        out = self.bn1(out)
+        # out = self.bn1(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
