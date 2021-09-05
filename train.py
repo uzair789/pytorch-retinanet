@@ -334,6 +334,7 @@ def main(args=None):
             mAP = csv_eval.evaluate(dataset_val, retinanet)
 
         #scheduler.step(np.mean(epoch_loss))
+        scheduler.step()
 
         torch.save(retinanet.module, os.path.join(output_folder_path, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num)))
 
