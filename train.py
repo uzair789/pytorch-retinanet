@@ -46,6 +46,7 @@ def main(args=None):
     parser.add_argument('--caption', help='Any thing in particular about the experiment', type=str)
     parser.add_argument('--server', help='seerver name', type=str, default='ultron')
     parser.add_argument('--detector', help='detection algo', type=str, default='RetinaNet')
+    parser.add_argument('--lrScheduler', help='LR Scheduler', type=str, default='Old')
     parser.add_argument('--cdc', help='Classification Distillation Coeff', type=float, default=1)
     parser.add_argument('--rdc', help='Regression Distillation Coeff', type=float, default=1)
     parser.add_argument('--fdc', help='Feature Distillation Coeff', type=float, default=1)
@@ -65,6 +66,7 @@ def main(args=None):
               'lr': parser.lr,
               'caption': parser.caption,
               'server': parser.server,
+              'LRScheduler': parser.lrScheduler,
               'classification_distill_coeff': parser.cdc,
               'regression_distill_coeff': parser.rdc,
               'feature_distill_coeff': parser.fdc
@@ -120,7 +122,9 @@ def main(args=None):
     distillation = True
     # Create the model
     if parser.depth == 18:
-        model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch'
+        #model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch'
+        #model_folder = 'BiRealNet18_backbone_plus_SE_attention_3_heads_with_shortcuts_LambdaLR'
+        model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR'
         # retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
         #retinanet = torch.load('results/resnet18_layer123_binary_backbone_binary/coco_retinanet_11.pt')
         retinanet = torch.load('results/{}/coco_retinanet_11.pt'.format(model_folder))
@@ -168,8 +172,12 @@ def main(args=None):
 
     optimizer = optim.Adam(retinanet.parameters(), lr=parser.lr)
 
-    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lambda step : (1.0-step/parser.epochs), last_epoch=-1)
-    #scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
+    if parser.lrScheduler == 'LambdaLR':
+        print('LambdaLR')
+        scheduler = optim.lr_scheduler.LambdaLR(optimizer, lambda step : (1.0-step/parser.epochs), last_epoch=-1)
+    else:
+        print('old scheduler')
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
 
     loss_hist = collections.deque(maxlen=500)
 
@@ -328,8 +336,12 @@ def main(args=None):
 
             mAP = csv_eval.evaluate(dataset_val, retinanet)
 
-        #scheduler.step(np.mean(epoch_loss))
-        scheduler.step()
+        if parser.lrScheduler == 'LambdaLR':
+            print('step LambdaLR')
+            scheduler.step()
+        else:
+            print('step oldScheduler')
+            scheduler.step(np.mean(epoch_loss))
 
         torch.save(retinanet.module, os.path.join(output_folder_path, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num)))
 
