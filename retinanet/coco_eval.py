@@ -3,7 +3,7 @@ import json
 import torch
 
 
-def evaluate_coco(dataset, model, threshold=0.05, exp=None):
+def evaluate_coco(dataset, model, output_folder_path, threshold=0.05, exp=None):
 
     model.eval()
 
@@ -69,11 +69,11 @@ def evaluate_coco(dataset, model, threshold=0.05, exp=None):
             return
 
         # write output
-        json.dump(results, open('{}_bbox_results.json'.format(dataset.set_name), 'w'), indent=4)
+        json.dump(results, open('{}/{}_bbox_results.json'.format(output_folder_path, dataset.set_name), 'w'), indent=4)
 
         # load results in COCO evaluation tool
         coco_true = dataset.coco
-        coco_pred = coco_true.loadRes('{}_bbox_results.json'.format(dataset.set_name))
+        coco_pred = coco_true.loadRes('{}/{}_bbox_results.json'.format(output_folder_path, dataset.set_name))
 
         # run COCO evaluation
         coco_eval = COCOeval(coco_true, coco_pred, 'bbox')
