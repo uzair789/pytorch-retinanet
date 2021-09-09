@@ -325,7 +325,7 @@ def main(args=None):
 
             print('Evaluating dataset')
 
-            coco_eval.evaluate_coco(dataset_val, retinanet, exp=exp)
+            coco_eval.evaluate_coco(dataset_val, retinanet, output_folder_path, exp=exp)
 
             #exp.log_metric('Validation: ap1', float(ap1))
             #exp.log_metric('Validation: IOU_0.5', float(iou_point_five))
