@@ -12,7 +12,7 @@ from retinanet.anchors import Anchors
 from retinanet import losses
 
 # adding the binarization units
-from retinanet.binary_units import BinaryActivation, HardBinaryConv, BinaryLinear
+#from retinanet.binary_units import BinaryActivation, HardBinaryConv, BinaryLinear
 from icecream import ic
 
 
@@ -23,12 +23,13 @@ def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
                      padding=1, bias=False)
+'''
 
 def conv1x1(in_planes, out_planes, stride=1):
     """1x1 convolution"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
 
-'''
+
 def conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True, is_bin=False):
      if is_bin:
          return HardBinaryConv(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
@@ -213,7 +214,6 @@ class ClassificationModel(nn.Module):
 
 
 
-
 class BinaryActivation(nn.Module):
     def __init__(self):
         super(BinaryActivation, self).__init__()
@@ -255,6 +255,7 @@ class HardBinaryConv(nn.Module):
         y = F.conv2d(x, binary_weights, stride=self.stride, padding=self.padding)
 
         return y
+
 
 
 class BasicBlock(nn.Module):
@@ -356,8 +357,7 @@ class BiRealNet(nn.Module):
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
                 nn.AvgPool2d(kernel_size=2, stride=stride),
-                conv2d(self.inplanes, planes * block.expansion,
-                       kernel_size=1, bias=False, is_bin=False),
+                conv1x1(self.inplanes, planes * block.expansion),
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
