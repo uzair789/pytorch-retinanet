@@ -175,7 +175,8 @@ def main(args=None):
 
     if parser.lrScheduler == 'LambdaLR':
         print('LambdaLR')
-        scheduler = optim.lr_scheduler.LambdaLR(optimizer, lambda step : (1.0-step/parser.epochs), last_epoch=-1)
+        #scheduler = optim.lr_scheduler.LambdaLR(optimizer, lambda step : (1.0-step/parser.epochs), last_epoch=-1)
+        scheduler = optim.lr_scheduler.LambdaLR(optimizer, lambda step : (1.0-step/12), last_epoch=-1)
     else:
         print('old scheduler')
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
@@ -337,7 +338,7 @@ def main(args=None):
 
             mAP = csv_eval.evaluate(dataset_val, retinanet)
 
-        if parser.lrScheduler == 'LambdaLR':
+        if parser.lrScheduler == 'LambdaLR' and epoch_num < 12:
             print('step LambdaLR')
             scheduler.step()
         else:
