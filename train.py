@@ -147,8 +147,7 @@ def main(args=None):
             #                                   is_bin=False)
             #retinanet_teacher = torch.load('results/resnet18_layer1_binary_backbone_binary/coco_retinanet_11.pt')
             #retinanet_teacher = torch.load('results/resnet18_layer123_binary_backbone_distillation_head_teacher_layer12_cdc1_rdc1_fdc0/coco_retinanet_11.pt')
-            retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_11.pt')
-            #retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_7.pt')
+            retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_1.pt')
             # retinanet_teacher.load_state_dict(checkpoint_teacher)
             print('teacher loaded!')
             print(retinanet_teacher)
@@ -195,7 +194,8 @@ def main(args=None):
     retinanet.module.freeze_bn()
 
     retinanet_teacher.module.freeze_bn()
-    checks = {'4':7, '8':11}
+    #checks = {'4':7, '8':11}
+    checks = {'1':2, '2':3, '3':4, '4':5, '5':6, '6':7, '7':8, '8':9, '9':10, '10':11}
     print('Num training images: {}'.format(len(dataset_train)))
 
     for epoch_num in range(parser.epochs):
