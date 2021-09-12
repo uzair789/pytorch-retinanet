@@ -140,6 +140,7 @@ def main(args=None):
         print('student loaded!')
         print(retinanet)
 
+
         if distillation:
             #retinanet_teacher = model.resnet18(num_classes=dataset_train.num_classes(),
             #                                   pretrained=True,
@@ -194,11 +195,21 @@ def main(args=None):
     retinanet.module.freeze_bn()
 
     retinanet_teacher.module.freeze_bn()
-
+    checks = {'4':7, '8':11}
     print('Num training images: {}'.format(len(dataset_train)))
 
     for epoch_num in range(parser.epochs):
+        if str(epoch_num) in checks.keys():
+            _epoch_num = str(epoch_num)
+            print('teacher changed   -- loading checkpoint {}  at epoch '.format(checks[_epoch_num]), _epoch_num )
+            retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_{}.pt'.format(checks[_epoch_num]))
+            retinanet_teacher = torch.nn.DataParallel(retinanet_teacher).cuda()
+            retinanet_teacher.training = True
 
+            retinanet_teacher.module.freeze_bn()
+            print('teacher ready')
+        #if epoch_num < 4:
+        #    continue
         exp.log_metric('Current lr', float(optimizer.param_groups[0]['lr']))
         exp.log_metric('Current epoch', int(epoch_num))
 
