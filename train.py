@@ -20,6 +20,7 @@ from retinanet import csv_eval
 
 import neptune
 from icecream import ic
+import torch.nn as nn
 
 assert torch.__version__.split('.')[0] == '1'
 
@@ -219,6 +220,7 @@ def main(args=None):
                 #class_loss_distill = parser.cdc * torch.norm((class_output_teacher - class_output))
                 #reg_loss_distill = parser.rdc * torch.norm((reg_output_teacher - reg_output))
 
+
                 c_loss_distill = 0
                 reg_loss_distill = 0
                 for i in range(parser.batch_size):
@@ -235,6 +237,50 @@ def main(args=None):
 
                 class_loss_distill = parser.cdc * (c_loss_distill/parser.batch_size)
                 reg_loss_distill = parser.rdc * (reg_loss_distill/parser.batch_size)
+                '''
+
+                #---
+
+                class_teacher_dim = class_output_teacher.shape
+                reg_teacher_dim = reg_output_teacher.shape
+                class_output_dim = class_output.shape
+                reg_output_dim = reg_output.shape
+
+                class_output_teacher = class_output_teacher.view([class_teacher_dim[0],
+                                                                  class_teacher_dim[1],
+                                                                  -1])
+
+                reg_output_teacher = reg_output_teacher.view([reg_teacher_dim[0],
+                                                              reg_teacher_dim[1],
+                                                              -1])
+                class_output = class_output.view([class_output_dim[0],
+                                                  class_output_dim[1],
+                                                  -1])
+                reg_output = reg_output.view([reg_output_dim[0],
+                                              reg_output_dim[1],
+                                              -1])
+
+                class_output_teacher = nn.functional.normalize(class_output_teacher, dim=2)
+                reg_output_teacher = nn.functional.normalize(reg_output_teacher, dim=2)
+                class_output = nn.functional.normalize(class_output, dim=2)
+                reg_output = nn.functional.normalize(reg_output, dim=2)
+
+
+                c_loss_distill = 0
+                reg_loss_distill = 0
+                for i in range(parser.batch_size):
+                    for j in range(class_output_teacher.shape[1]):
+                        c_loss = torch.norm(class_output_teacher[i, j, :] - class_output[i, j, :])
+                        r_loss = torch.norm(reg_output_teacher[i, j, :] - reg_output[i, j, :])
+
+                        c_loss_distill += c_loss
+                        reg_loss_distill += r_loss
+                        print(i, j, class_output_teacher.shape[1])
+
+                class_loss_distill = parser.cdc * (c_loss_distill/parser.batch_size)
+                reg_loss_distill = parser.rdc * (reg_loss_distill/parser.batch_size)
+                '''
+
 
 
 
