@@ -140,8 +140,8 @@ def main(args=None):
             #                                   is_bin=False)
             #retinanet_teacher = torch.load('results/resnet18_layer1_binary_backbone_binary/coco_retinanet_11.pt')
             #retinanet_teacher = torch.load('results/resnet18_layer123_binary_backbone_distillation_head_teacher_layer12_cdc1_rdc1_fdc0/coco_retinanet_11.pt')
-            #retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_11.pt')
-            retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_7.pt')
+            retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_11.pt')
+            #retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_7.pt')
             # retinanet_teacher.load_state_dict(checkpoint_teacher)
             print('teacher loaded!')
             print(retinanet_teacher)
@@ -216,8 +216,29 @@ def main(args=None):
 
                 ## -->DISTILLATION ON FULL TENSOR
                 # distillatioon losses with the loss coefficients
-                class_loss_distill = parser.cdc * torch.norm((class_output_teacher - class_output))
-                reg_loss_distill = parser.rdc * torch.norm((reg_output_teacher - reg_output))
+                #class_loss_distill = parser.cdc * torch.norm((class_output_teacher - class_output))
+                #reg_loss_distill = parser.rdc * torch.norm((reg_output_teacher - reg_output))
+
+                c_loss_distill = 0
+                reg_loss_distill = 0
+                for i in range(parser.batch_size):
+                    class_teacher = class_output_teacher[i]/ torch.norm(class_output_teacher[i])
+                    reg_teacher = reg_output_teacher[i] / torch.norm(reg_output_teacher[i])
+                    class_student = class_output[i] / torch.norm(class_output[i])
+                    reg_student = reg_output[i] / torch.norm(reg_output[i])
+
+                    c_loss = torch.norm(class_teacher - class_student)
+                    r_loss = torch.norm(reg_teacher - reg_student)
+
+                    c_loss_distill += c_loss
+                    reg_loss_distill += r_loss
+
+                class_loss_distill = parser.cdc * (c_loss_distill/parser.batch_size)
+                reg_loss_distill = parser.rdc * (reg_loss_distill/parser.batch_size)
+
+
+
+
                 #import pdb
                 #pdb.set_trace()
                 #ic(class_output.shape)
