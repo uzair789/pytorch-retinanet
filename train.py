@@ -51,6 +51,8 @@ def main(args=None):
     parser.add_argument('--cdc', help='Classification Distillation Coeff', type=float, default=1)
     parser.add_argument('--rdc', help='Regression Distillation Coeff', type=float, default=1)
     parser.add_argument('--fdc', help='Feature Distillation Coeff', type=float, default=1)
+    parser.add_argument('--clc', help='CLassification losss Coeff', type=float, default=1)
+    parser.add_argument('--rlc', help='Regression loss Coeff', type=float, default=1)
 
     parser = parser.parse_args(args)
 
@@ -70,7 +72,9 @@ def main(args=None):
               'LRScheduler': parser.lrScheduler,
               'classification_distill_coeff': parser.cdc,
               'regression_distill_coeff': parser.rdc,
-              'feature_distill_coeff': parser.fdc
+              'feature_distill_coeff': parser.fdc,
+              'classification_loss_coeff': parser.clc,
+              'regression_loss_coeff': parser.rlc
 
 
     }
@@ -351,8 +355,8 @@ def main(args=None):
 
                 features_loss_distill = parser.fdc * sum([torch.norm(features_teacher[i] - features[i]) for i in range(len(features)) ])
 
-                classification_loss = classification_loss.mean()
-                regression_loss = regression_loss.mean()
+                classification_loss = parser.clc * classification_loss.mean()
+                regression_loss = parser.rlc * regression_loss.mean()
 
                 loss = classification_loss + regression_loss + class_loss_distill + reg_loss_distill + features_loss_distill
                 # loss = class_loss_distill + reg_loss_distill
