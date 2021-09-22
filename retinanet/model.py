@@ -7,10 +7,6 @@ from retinanet.utils import BasicBlock, Bottleneck, BBoxTransform, ClipBoxes
 from retinanet.anchors import Anchors
 from retinanet import losses
 
-# adding the binarization units
-from retinanet.binary_units import BinaryActivation, HardBinaryConv, BinaryLinear
-
-from icecream import ic
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -33,117 +29,84 @@ def activation(inplace=False, is_bin=False):
     return nn.ReLU(inplace=inplace)
 
 class PyramidFeatures(nn.Module):
-    def __init__(self, C3_size, C4_size, C5_size, feature_size=256, is_bin=False):
+    def __init__(self, C3_size, C4_size, C5_size, feature_size=256):
         super(PyramidFeatures, self).__init__()
 
         # upsample C5 to get P5 from the FPN paper
         self.P5_1 = conv2d(C5_size, feature_size, kernel_size=1, stride=1, padding=0)
         self.P5_upsampled = nn.Upsample(scale_factor=2, mode='nearest')
-        self.P5_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1, is_bin=is_bin)
-        self.act5 = activation(is_bin=is_bin)
+        self.P5_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1)
 
         # add P5 elementwise to C4
         self.P4_1 = conv2d(C4_size, feature_size, kernel_size=1, stride=1, padding=0)
         self.P4_upsampled = nn.Upsample(scale_factor=2, mode='nearest')
-        self.P4_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1, is_bin=is_bin)
-        self.act4 = activation(is_bin=is_bin)
+        self.P4_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1)
 
         # add P4 elementwise to C3
         self.P3_1 = conv2d(C3_size, feature_size, kernel_size=1, stride=1, padding=0)
-        self.P3_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1, is_bin=is_bin)
-        self.act3 = activation(is_bin=is_bin)
+        self.P3_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1)
 
         # "P6 is obtained via a 3x3 stride-2 conv on C5"
-        self.P6 = conv2d(C5_size, feature_size, kernel_size=3, stride=2, padding=1, is_bin=is_bin)
-        self.act6 = activation(is_bin=is_bin)
-        #self.avgPool6 = nn.AdaptiveAvgPool2d((10,13))        
-        self.P6_down = conv2d(C5_size, feature_size, kernel_size=1, stride=2, padding=0)
+        self.P6 = conv2d(C5_size, feature_size, kernel_size=3, stride=2, padding=1)
 
         # "P7 is computed by applying ReLU followed by a 3x3 stride-2 conv on P6"
-        self.P7_1 = activation(is_bin=is_bin)
-        self.P7_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=2, padding=1, is_bin=is_bin)
-        self.avgPool7 = nn.AdaptiveAvgPool2d((7,5))       
-        self.P7_down = conv2d(feature_size, feature_size, kernel_size=1, stride=2, padding=0)
+        self.P7_1 = activation()
+        self.P7_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=2, padding=1)
 
     def forward(self, inputs):
         C3, C4, C5 = inputs
 
         P5_x = self.P5_1(C5)
         P5_upsampled_x = self.P5_upsampled(P5_x)
-        P5_act = self.act5(P5_x)
-        P5_x = self.P5_2(P5_act) + P5_x
+        P5_x = self.P5_2(P5_x)
 
         P4_x = self.P4_1(C4)
         P4_x = P5_upsampled_x + P4_x
         P4_upsampled_x = self.P4_upsampled(P4_x)
-        P4_act = self.act4(P4_x)
-        P4_x = self.P4_2(P4_act) + P4_x
+        P4_x = self.P4_2(P4_x)
 
         P3_x = self.P3_1(C3)
         P3_x = P3_x + P4_upsampled_x
-        P3_act = self.act3(P3_x)
-        P3_x = self.P3_2(P3_act) + P3_x
+        P3_x = self.P3_2(P3_x)
 
-        C5_act = self.act6(C5)
-        x6 = self.P6(C5_act)
-        #y6 = self.avgPool6(C5)
-        y6 = self.P6_down(C5)
-        #ic(C5.shape)
-        #ic(x6.shape)
-        #ic(y6.shape)
-        #print('---')
-        P6_x = x6 + y6
+        P6_x = self.P6(C5)
 
         P7_x = self.P7_1(P6_x)
-        x7= self.P7_2(P7_x)
-        y7 = self.P7_down(P6_x)
-        #ic(P6_x.shape)
-        #ic(x7.shape)
-        #ic(y7.shape)
-        #print('***')
-        P7_x = x7 + y7
-
+        P7_x = self.P7_2(P7_x)
 
         return [P3_x, P4_x, P5_x, P6_x, P7_x]
 
 
 class RegressionModel(nn.Module):
-    def __init__(self, num_features_in, num_anchors=9, feature_size=256, is_bin=False):
+    def __init__(self, num_features_in, num_anchors=9, feature_size=256):
         super(RegressionModel, self).__init__()
 
-        # not binarizing because treating this as the first layer dealing with input 
         self.conv1 = conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
         self.act1 = activation()
 
-        self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
-        self.act2 = activation(is_bin=is_bin)
+        self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
+        self.act2 = activation()
 
-        self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
-        self.act3 = activation(is_bin=is_bin)
+        self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
+        self.act3 = activation()
 
-        self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
-        self.act4 = activation(is_bin=is_bin)
+        self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
+        self.act4 = activation()
 
         self.output = conv2d(feature_size, num_anchors * 4, kernel_size=3, padding=1)
 
     def forward(self, x):
+        out = self.conv1(x)
+        out = self.act1(out)
 
+        out = self.conv2(out)
+        out = self.act2(out)
 
-        out1 = self.conv1(x)
-        #out = self.act1(out)
+        out = self.conv3(out)
+        out = self.act3(out)
 
-        out = self.act2(out1)
-        out2 = self.conv2(out) + out1
-        #out = self.act2(out)
-
-
-        out = self.act3(out2)
-        out3 = self.conv3(out) + out2
-        #out = self.act3(out)
-
-        out = self.act4(out3)
-        out = self.conv4(out) + out3
-        #out = self.act4(out)
+        out = self.conv4(out)
+        out = self.act4(out)
 
         out = self.output(out)
 
@@ -154,7 +117,7 @@ class RegressionModel(nn.Module):
 
 
 class ClassificationModel(nn.Module):
-    def __init__(self, num_features_in, num_anchors=9, num_classes=80, prior=0.01, feature_size=256, is_bin=False):
+    def __init__(self, num_features_in, num_anchors=9, num_classes=80, prior=0.01, feature_size=256):
         super(ClassificationModel, self).__init__()
 
         self.num_classes = num_classes
@@ -163,33 +126,30 @@ class ClassificationModel(nn.Module):
         self.conv1 = conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
         self.act1 = activation()
 
-        self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
-        self.act2 = activation(is_bin=is_bin)
+        self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
+        self.act2 = activation()
 
-        self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
-        self.act3 = activation(is_bin=is_bin)
+        self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
+        self.act3 = activation()
 
-        self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
-        self.act4 = activation(is_bin=is_bin)
+        self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1)
+        self.act4 = activation()
 
         self.output = conv2d(feature_size, num_anchors * num_classes, kernel_size=3, padding=1)
         self.output_act = nn.Sigmoid()
 
     def forward(self, x):
-        out1 = self.conv1(x)
-        #out = self.act1(out)
+        out = self.conv1(x)
+        out = self.act1(out)
 
-        out = self.act2(out1)
-        out2 = self.conv2(out) + out1
-        #out = self.act2(out)
+        out = self.conv2(out)
+        out = self.act2(out)
 
-        out = self.act3(out2)
-        out3 = self.conv3(out) + out2
-        #out = self.act3(out)
+        out = self.conv3(out)
+        out = self.act3(out)
 
-        out = self.act4(out3)
-        out = self.conv4(out) + out3
-        #out = self.act4(out)
+        out = self.conv4(out)
+        out = self.act4(out)
 
         out = self.output(out)
         out = self.output_act(out)
@@ -206,17 +166,17 @@ class ClassificationModel(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, num_classes, block, layers, is_bin=[False, False, False, False]):
+    def __init__(self, num_classes, block, layers, is_bin=False):
         self.inplanes = 64
         super(ResNet, self).__init__()
         self.conv1 = conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = activation(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, 64, layers[0], is_bin=is_bin[0])
-        self.layer2 = self._make_layer(block, 128, layers[1], stride=2, is_bin=is_bin[1])
-        self.layer3 = self._make_layer(block, 256, layers[2], stride=2, is_bin=is_bin[2])
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=2, is_bin=is_bin[3])
+        self.layer1 = self._make_layer(block, 64, layers[0], is_bin=is_bin)
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2, is_bin=is_bin)
+        self.layer3 = self._make_layer(block, 256, layers[2], stride=2, is_bin=is_bin)
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2, is_bin=is_bin)
 
         if block == BasicBlock:
             # fpn_sizes = [self.layer2[layers[1] - 1].conv2.out_channels, self.layer3[layers[2] - 1].conv2.out_channels,
@@ -231,8 +191,8 @@ class ResNet(nn.Module):
 
         self.fpn = PyramidFeatures(fpn_sizes[0], fpn_sizes[1], fpn_sizes[2])
 
-        self.regressionModel = RegressionModel(256, is_bin=True)
-        self.classificationModel = ClassificationModel(256, num_classes=num_classes, is_bin=True)
+        self.regressionModel = RegressionModel(256)
+        self.classificationModel = ClassificationModel(256, num_classes=num_classes)
 
         self.anchors = Anchors()
 
@@ -314,8 +274,8 @@ class ResNet(nn.Module):
         anchors = self.anchors(img_batch)
 
         if self.training:
-            classification_loss, regression_loss  = self.focalLoss(classification, regression, anchors, annotations)
-            return classification_loss, regression_loss
+            classification_loss, regression_loss, all_positive_indices = self.focalLoss(classification, regression, anchors, annotations)
+            return classification_loss, regression_loss, classification, regression, all_positive_indices,  features
         else:
             transformed_anchors = self.regressBoxes(anchors, regression)
             transformed_anchors = self.clipBoxes(transformed_anchors, img_batch)
@@ -358,30 +318,12 @@ class ResNet(nn.Module):
             return [finalScores, finalAnchorBoxesIndexes, finalAnchorBoxesCoordinates]
 
 
-def resnet18(arch, num_classes, pretrained=False, **kwargs):
+def resnet18(num_classes, pretrained=False, **kwargs):
     """Constructs a ResNet-18 model.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    if arch == 'full_precision':
-        is_bin=[False, False, False, False]
-    elif arch=='binary_net':
-        is_bin=[True, True, True, True]
-    elif arch=='layer1_binary':
-        is_bin=[True, False, False, False]
-    elif arch=='layer12_binary':
-        is_bin=[True, True, False, False]
-    elif arch=='layer123_binary':
-        is_bin=[True, True, True, False]
-    elif arch=='layer4_binary':
-        is_bin=[False, False, False, True]
-    elif arch=='layer43_binary':
-        is_bin=[False, False, True, True]
-    elif arch=='layer432_binary':
-        is_bin=[False, True, True, True]
-    else:
-        raise(ValueError, 'arch not defined [full_precision, binary_net, layer1_binary, layer12_binary, layer123_binary, layer4_binary, layer43_binary, layer432_biinary]')
-    model = ResNet(num_classes, BasicBlock, [2, 2, 2, 2], is_bin, **kwargs)
+    model = ResNet(num_classes, BasicBlock, [2, 2, 2, 2], **kwargs)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet18'], model_dir='.'), strict=False)
     return model
