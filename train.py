@@ -130,12 +130,12 @@ def main(args=None):
         #model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch'
         #model_folder = 'BiRealNet18_backbone_plus_SE_attention_3_heads_with_shortcuts_LambdaLR'
         #model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR'
-        ##model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_OldScheduler_binary_FPN'
+        model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_OldScheduler_binary_FPN'
         #model_folder = 'rerun_BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN'
         # retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
         #retinanet = torch.load('results/resnet18_layer123_binary_backbone_binary/coco_retinanet_11.pt')
-        ##retinanet = torch.load('results/{}/coco_retinanet_11.pt'.format(model_folder))
-        retinanet = birealnet18(checkpoint_path=None, num_classes=dataset_train.num_classes())
+        retinanet = torch.load('results/{}/coco_retinanet_11.pt'.format(model_folder))
+        #retinanet = birealnet18(checkpoint_path=None, num_classes=dataset_train.num_classes())
         #retinanet.load_state_dict(checkpoint)
         print('student loaded!')
         print(retinanet)
@@ -147,7 +147,7 @@ def main(args=None):
             #                                   is_bin=False)
             #retinanet_teacher = torch.load('results/resnet18_layer1_binary_backbone_binary/coco_retinanet_11.pt')
             #retinanet_teacher = torch.load('results/resnet18_layer123_binary_backbone_distillation_head_teacher_layer12_cdc1_rdc1_fdc0/coco_retinanet_11.pt')
-            retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_1.pt')
+            retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_0.pt')
             # retinanet_teacher.load_state_dict(checkpoint_teacher)
             print('teacher loaded!')
             print(retinanet_teacher)
@@ -195,7 +195,8 @@ def main(args=None):
 
     retinanet_teacher.module.freeze_bn()
     #checks = {'4':7, '8':11}
-    checks = {'1':2, '2':3, '3':4, '4':5, '5':6, '6':7, '7':8, '8':9, '9':10, '10':11}
+    #checks = {'1':2, '2':3, '3':4, '4':5, '5':6, '6':7, '7':8, '8':9, '9':10, '10':11}
+    checks = {'1':1, '2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10, '11':11}
     print('Num training images: {}'.format(len(dataset_train)))
 
     for epoch_num in range(parser.epochs):
