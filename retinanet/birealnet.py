@@ -200,8 +200,8 @@ class ClassificationModel(nn.Module):
          out = self.conv4(out) + out3
          #out = self.act4(out)
 
-         out = self.output(out)
-         out = self.output_act(out)
+         out3 = self.output(out)
+         out = self.output_act(out3)
 
          # out is B x C x W x H, with C = n_classes + n_anchors
          out1 = out.permute(0, 2, 3, 1)
@@ -210,7 +210,16 @@ class ClassificationModel(nn.Module):
 
          out2 = out1.view(batch_size, width, height, self.num_anchors, self.num_classes)
 
-         return out2.contiguous().view(x.shape[0], -1, self.num_classes)
+
+         # out is B x C x W x H, with C = n_classes + n_anchors
+         out31 = out3.permute(0, 2, 3, 1)
+
+         batch_size, width, height, channels = out31.shape
+
+         out32 = out31.view(batch_size, width, height, self.num_anchors, self.num_classes)
+
+
+         return out2.contiguous().view(x.shape[0], -1, self.num_classes), out32.contiguous().view(x.shape[0], -1, self.num_classes)
 
 
 
@@ -407,14 +416,15 @@ class BiRealNet(nn.Module):
         features = self.fpn([x2, x3, x4])
         regression = torch.cat([self.regressionModel(feature) for feature in features], dim=1)
 
-        classification = torch.cat([self.classificationModel(feature) for feature in features], dim=1)
+        classification = torch.cat([self.classificationModel(feature)[0] for feature in features], dim=1)
+        classification_raw = torch.cat([self.classificationModel(feature)[1] for feature in features], dim=1)
 
         anchors = self.anchors(img_batch)
 
         if self.training:
             #return self.focalLoss(classification, regression, anchors, annotations)
             classification_loss, regression_loss, all_positive_indices = self.focalLoss(classification, regression, anchors, annotations)
-            return classification_loss, regression_loss, classification, regression, all_positive_indices,  features
+            return classification_loss, regression_loss, classification, classification_raw, regression, all_positive_indices,  features
         else:
             transformed_anchors = self.regressBoxes(anchors, regression)
             transformed_anchors = self.clipBoxes(transformed_anchors, img_batch)

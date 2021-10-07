@@ -21,12 +21,97 @@ from retinanet import csv_eval
 import neptune
 from icecream import ic
 import torch.nn as nn
+from torch.nn import functional as F
 
 assert torch.__version__.split('.')[0] == '1'
 
 print('CUDA available: {}'.format(torch.cuda.is_available()))
 
 neptune.init('uzair789/Distillation')
+
+def KL_loss(teacher_output, student_output, id_=1):
+    """Process the KL divergence between the teacher and the student outputs after
+    the sigmoid operation. The logit maps have been normalized for unit norm.
+
+    Arguments:
+        teacher_output (torch.Tensor) - Nx(h*w*num_anchors)x80 for class
+                                      - Nx(h*w*num_anchrs)x4 for reg
+                                      teacher not softmaxed
+        student_output (torch.Tensor) - same as teacher but not softmaxed
+    Returns:
+        KL divergence loss over the batch
+    """
+    assert(teacher_output.shape == student_output.shape)
+
+    student_output_s = F.log_softmax(student_output, dim=2)
+    teacher_output_s = F.softmax(teacher_output, dim=2)
+    #student_output_s = student_output
+    #teacher_output_s = teacher_output
+
+    mean_  = 0
+    for i in range(teacher_output.shape[0]):
+        #  looping over samples in a batch
+        teacher = teacher_output_s[i, :, :]#.unsqueeze(axis=1)
+        student = student_output_s[i, :, :]#.unsqueeze(axis=2)
+        teacher = teacher.unsqueeze(axis=1)
+        student = student.unsqueeze(axis=2)
+        #ic(teacher.shape, student.shape)
+        # teacher shape is num x 1 x 80 and student shape is num x 80 x 1
+        cross_entropy_loss = -torch.bmm(teacher, student)
+        #ic(cross_entropy_loss.shape)
+        #  result is num x 1 x 1
+
+        #sum_ += sum(cross_entropy_loss)
+        mean_  += cross_entropy_loss.mean()
+
+    return mean_/teacher_output.shape[0]
+
+
+def old_KL_loss(teacher_output, student_output, id_=1):
+    """ memory problem..doesnt work"""
+    """Process the KL divergence between the teacher and the student outputs after
+    the sigmoid operation. The logit maps have been normalized for unit norm.
+
+    Arguments:
+        teacher_output (torch.Tensor) - Nx(h*w*num_anchors)x80 for class
+                                      - Nx(h*w*num_anchrs)x4 for reg
+                                      teacher not softmaxed
+        student_output (torch.Tensor) - same as teacher but not softmaxed
+    Returns:
+        KL divergence loss over the batch
+    """
+    assert(teacher_output.shape == student_output.shape)
+    #batch_sum = 0
+
+    student_output_s = F.log_softmax(student_output, dim=2)
+    teacher_output_s = F.softmax(teacher_output, dim=2)
+
+    #for i in range(teacher_output.shape[0]):
+    #    # looping over samples in a batch
+    #    teacher = teacher_output[i, :, :]
+    #    student = student_output[i, :, :]
+
+    ic(teacher_output_s.shape)
+    ic(student_output_s.permute(0,2,1).shape)
+    assert(teacher_output_s.shape == student_output_s.shape)
+    cross_entropy_loss = -torch.bmm(teacher_output_s, student_output_s.permute(0,2,1))
+    cross_entropy_loss = cross_entropy_loss.mean()
+    return cross_entropy_loss
+
+    """
+    spatial_sum = 0
+    for j in range(teacher_output.shape[0]):
+        #print('batch {}/{} spatial {}/{} id = {} spatial_sum = {}'.format(j, teacher_output.shape,
+        #                                                                                    spatial_sum))
+        student_log = student_output_s[j, :] #torch.log(student[j, :])
+        spatial_sum -= torch.dot(teacher_output_s[j, :], student_log)
+
+        #spatial_mean = spatial_sum.mean() # / teacher.shape[0]
+        #batch_sum += spatial_mean
+        #batch_sum += spatial_sum
+
+    return spatial_sum / teacher_output.shape[0]
+    """
 
 
 def main(args=None):
@@ -130,8 +215,8 @@ def main(args=None):
         #model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch'
         #model_folder = 'BiRealNet18_backbone_plus_SE_attention_3_heads_with_shortcuts_LambdaLR'
         #model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR'
-        #model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_OldScheduler_binary_FPN'
-        model_folder = 'rerun_BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN'
+        model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_OldScheduler_binary_FPN'
+        #model_folder = 'rerun_BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN'
         # retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
         #retinanet = torch.load('results/resnet18_layer123_binary_backbone_binary/coco_retinanet_11.pt')
         retinanet = torch.load('results/{}/coco_retinanet_11.pt'.format(model_folder))
@@ -213,10 +298,10 @@ def main(args=None):
                 optimizer.zero_grad()
 
                 if torch.cuda.is_available():
-                    classification_loss, regression_loss, class_output, reg_output, positive_indices, features = retinanet([data['img'].cuda().float(), data['annot']])
+                    classification_loss, regression_loss, class_output, class_raw, reg_output, positive_indices, features = retinanet([data['img'].cuda().float(), data['annot']])
                     with torch.no_grad():
                         # deactivating grads on teacher to save memory
-                        _, _, class_output_teacher, reg_output_teacher, positive_indices_teacher, features_teacher = retinanet_teacher([data['img'].cuda().float(), data['annot']])
+                        _, _, class_output_teacher, class_raw_teacher, reg_output_teacher, positive_indices_teacher, features_teacher = retinanet_teacher([data['img'].cuda().float(), data['annot']])
                 else:
                     classification_loss, regression_loss = retinanet([data['img'].float(), data['annot']])
 
@@ -225,22 +310,42 @@ def main(args=None):
                 #class_loss_distill = parser.cdc * torch.norm((class_output_teacher - class_output))
                 #reg_loss_distill = parser.rdc * torch.norm((reg_output_teacher - reg_output))
 
+                ###student_output_s = F.log_softmax(class_output, dim=2)
+                ###teacher_output_s = F.softmax(class_output_teacher, dim=2)
 
                 c_loss_distill = 0
                 reg_loss_distill = 0
                 for i in range(parser.batch_size):
-                    class_teacher = class_output_teacher[i]/ torch.norm(class_output_teacher[i])
+                    #class_teacher = class_output_teacher[i]/ torch.norm(class_output_teacher[i])
                     reg_teacher = reg_output_teacher[i] / torch.norm(reg_output_teacher[i])
-                    class_student = class_output[i] / torch.norm(class_output[i])
+                    #class_student = class_output[i] / torch.norm(class_output[i])
                     reg_student = reg_output[i] / torch.norm(reg_output[i])
 
-                    c_loss = torch.norm(class_teacher - class_student)
+                    #c_loss = torch.norm(class_teacher - class_student)
+                    #c_loss = KL_loss(class_teacher, class_student)
                     r_loss = torch.norm(reg_teacher - reg_student)
 
-                    c_loss_distill += c_loss
+                    #c_loss_distill += c_loss
                     reg_loss_distill += r_loss
 
-                class_loss_distill = parser.cdc * (c_loss_distill/parser.batch_size)
+                    ''''
+                    teacher1 = teacher_output_s[i, :, :]#.unsqueeze(axis=1)
+                    student1 = student_output_s[i, :, :]#.unsqueeze(axis=2)
+                    teacher = teacher1.unsqueeze(axis=1)
+                    student = student1.unsqueeze(axis=2)
+                    #ic(teacher.shape, student.shape)
+                    # teacher shape is num x 1 x 80 and student shape is num x 80 x 1
+                    cross_entropy_loss = -torch.bmm(teacher, student)
+                    ic(cross_entropy_loss.shape)
+                    #  result is num x 1 x 1
+
+                    #sum_ += sum(cross_entropy_loss)
+                    c_loss_distill += cross_entropy_loss.mean()
+                    '''
+                #class_loss_distill = parser.cdc * (c_loss_distill/parser.batch_size)
+                #class_loss_distill = parser.cdc * KL_loss(class_output_teacher, class_output)
+                class_loss_distill = parser.cdc * KL_loss(class_raw_teacher, class_raw)
+                ###class_loss_distill = parser.cdc * (c_loss_distill/parser.batch_size)
                 reg_loss_distill = parser.rdc * (reg_loss_distill/parser.batch_size)
                 '''
 
@@ -365,8 +470,8 @@ def main(args=None):
                 if bool(loss == 0):
                     print('loss=0 hence continue')
                     continue
-
-                loss.backward()
+                with torch.autograd.set_detect_anomaly(True):
+                    loss.backward()
 
                 torch.nn.utils.clip_grad_norm_(retinanet.parameters(), 0.1)
 
