@@ -7,10 +7,6 @@ from retinanet.utils import BasicBlock, Bottleneck, BBoxTransform, ClipBoxes
 from retinanet.anchors import Anchors
 from retinanet import losses
 
-# adding the binarization units
-from retinanet.binary_units import BinaryActivation, HardBinaryConv, BinaryLinear
-
-
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
     'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
@@ -20,15 +16,12 @@ model_urls = {
 }
 
 
-def conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True, is_bin=False):
-     if is_bin:
-         return HardBinaryConv(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
+# have separate conv and activation functions in this file and utils file because the default bias value is different
+def conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True):
      return nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=bias)
 
 
-def activation(inplace=False, is_bin=False):
-    if is_bin:
-        return BinaryActivation()
+def activation(inplace=False):
     return nn.ReLU(inplace=inplace)
 
 class PyramidFeatures(nn.Module):
@@ -182,19 +175,18 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
 
         if block == BasicBlock:
-            # fpn_sizes = [self.layer2[layers[1] - 1].conv2.out_channels, self.layer3[layers[2] - 1].conv2.out_channels,
-            #              self.layer4[layers[3] - 1].conv2.out_channels]
-            fpn_sizes = [self.layer2[layers[1] - 1].out_channels, self.layer3[layers[2] - 1].out_channels,
-                         self.layer4[layers[3] - 1].out_channels]
+            fpn_sizes = [self.layer2[layers[1] - 1].conv2.out_channels, self.layer3[layers[2] - 1].conv2.out_channels,
+                         self.layer4[layers[3] - 1].conv2.out_channels]
+            # had added the line below when using the smae bottleneck and basicblock code from utils for fp and binary
+            # model. Since the two models are separated, there is no need for the line
+            #fpn_sizes = [self.layer2[layers[1] - 1].out_channels, self.layer3[layers[2] - 1].out_channels,
+            #             self.layer4[layers[3] - 1].out_channels]
         elif block == Bottleneck:
             fpn_sizes = [self.layer2[layers[1] - 1].conv3.out_channels, self.layer3[layers[2] - 1].conv3.out_channels,
                          self.layer4[layers[3] - 1].conv3.out_channels]
         else:
             raise ValueError("Block type {} not understood".format(block))
 
-        print(fpn_sizes)
-        print(len(self.layer2))
-        print('in resnet')
         self.fpn = PyramidFeatures(fpn_sizes[0], fpn_sizes[1], fpn_sizes[2])
 
         self.regressionModel = RegressionModel(256)
@@ -231,7 +223,10 @@ class ResNet(nn.Module):
         except Exception as e:
             print('bias not in use in regression model')
 
-        self.freeze_bn()
+        # dont think this matters here. Because everytime we call model.train() bn layers should be in train mode. In
+        # the train.py, we always call retinanet.train() and retinanet.freeze_bn() one after the other so i dont think
+        # this line is needed here.
+        #self.freeze_bn()
 
     def _make_layer(self, block, planes, blocks, stride=1):
         downsample = None

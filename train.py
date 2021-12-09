@@ -152,8 +152,8 @@ def main(args=None):
     loss_hist = collections.deque(maxlen=500)
 
     retinanet.train()
-    #if parser.freeze_batchnorm:
-    retinanet.module.freeze_bn()
+    if parser.freeze_batchnorm:
+        retinanet.module.freeze_bn()
 
     print('Num training images: {}'.format(len(dataset_train)))
 
@@ -163,8 +163,8 @@ def main(args=None):
         exp.log_metric('Current epoch', int(epoch_num))
 
         retinanet.train()
-        #if parser.freeze_batchnorm:
-        retinanet.module.freeze_bn()
+        if parser.freeze_batchnorm:
+            retinanet.module.freeze_bn()
 
         epoch_loss = []
 

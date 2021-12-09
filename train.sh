@@ -1,9 +1,9 @@
-export CUDA_VISIBLE_DEVICES='5'
+export CUDA_VISIBLE_DEVICES='6,7'
 
-OUTPUT_FOLDER='./results'
+OUTPUT_FOLDER='./results2'
 #EXP_NAME='BiRealNet18_backbone_binary_from_scratch'
 DEPTH=18
-EXP_NAME="without_if_condition_for_batchnormfreeze_Resnet${DEPTH}_backbone_full_precision_pretrain_True_freezebatchnorm_True"
+EXP_NAME="Resnet${DEPTH}_backbone_full_precision_pretrain_True_freezebatchnorm_True"
 ARCH='Resnet'
 #ARCH='BiRealNet18'
 
