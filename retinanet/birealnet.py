@@ -7,24 +7,211 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from retinanet.model import PyramidFeatures, RegressionModel, ClassificationModel
 from retinanet.utils import BBoxTransform, ClipBoxes
 from retinanet.anchors import Anchors
 from retinanet import losses
 
+# adding the binarization units
+#from retinanet.binary_units import BinaryActivation, HardBinaryConv, BinaryLinear
+from icecream import ic
+
 
 __all__ = ['birealnet18', 'birealnet34']
 
-
+'''
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
                      padding=1, bias=False)
-
+'''
 
 def conv1x1(in_planes, out_planes, stride=1):
     """1x1 convolution"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+
+
+def conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True, is_bin=False):
+     if is_bin:
+         return HardBinaryConv(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
+     return nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=bias)
+
+
+def activation(inplace=False, is_bin=False):
+    if is_bin:
+        return BinaryActivation()
+    return nn.ReLU(inplace=inplace)
+
+
+class PyramidFeatures(nn.Module):
+    def __init__(self, C3_size, C4_size, C5_size, feature_size=256, is_bin=False):
+        super(PyramidFeatures, self).__init__()
+
+        # upsample C5 to get P5 from the FPN paper
+        self.P5_1 = conv2d(C5_size, feature_size, kernel_size=1, stride=1, padding=0)
+        self.P5_upsampled = nn.Upsample(scale_factor=2, mode='nearest')
+        self.P5_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1, is_bin=is_bin)
+        self.act5 = activation(is_bin=is_bin)
+
+        # add P5 elementwise to C4
+        self.P4_1 = conv2d(C4_size, feature_size, kernel_size=1, stride=1, padding=0)
+        self.P4_upsampled = nn.Upsample(scale_factor=2, mode='nearest')
+        self.P4_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1, is_bin=is_bin)
+        self.act4 = activation(is_bin=is_bin)
+
+        # add P4 elementwise to C3
+        self.P3_1 = conv2d(C3_size, feature_size, kernel_size=1, stride=1, padding=0)
+        self.P3_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1, is_bin=is_bin)
+        self.act3 = activation(is_bin=is_bin)
+
+        # "P6 is obtained via a 3x3 stride-2 conv on C5"
+        self.P6 = conv2d(C5_size, feature_size, kernel_size=3, stride=2, padding=1, is_bin=is_bin)
+        self.act6 = activation(is_bin=is_bin)
+        #self.avgPool6 = nn.AdaptiveAvgPool2d((10,13))
+        self.P6_down = conv2d(C5_size, feature_size, kernel_size=1, stride=2, padding=0)
+
+        # "P7 is computed by applying ReLU followed by a 3x3 stride-2 conv on P6"
+        self.P7_1 = activation(is_bin=is_bin)
+        self.P7_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=2, padding=1, is_bin=is_bin)
+        # self.avgPool7 = nn.AdaptiveAvgPool2d((7,5))
+        self.P7_down = conv2d(feature_size, feature_size, kernel_size=1, stride=2, padding=0)
+
+    def forward(self, inputs):
+        C3, C4, C5 = inputs
+
+        P5_x = self.P5_1(C5)
+        P5_upsampled_x = self.P5_upsampled(P5_x)
+        P5_act = self.act5(P5_x)
+        P5_x = self.P5_2(P5_act) + P5_x
+
+        P4_x = self.P4_1(C4)
+        P4_x = P5_upsampled_x + P4_x
+        P4_upsampled_x = self.P4_upsampled(P4_x)
+        P4_act = self.act4(P4_x)
+        P4_x = self.P4_2(P4_act) + P4_x
+
+        P3_x = self.P3_1(C3)
+        P3_x = P3_x + P4_upsampled_x
+        P3_act = self.act3(P3_x)
+        P3_x = self.P3_2(P3_act) + P3_x
+
+        C5_act = self.act6(C5)
+        x6 = self.P6(C5_act)
+        #y6 = self.avgPool6(C5)
+        y6 = self.P6_down(C5)
+        #ic(C5.shape)
+        #ic(x6.shape)
+        #ic(y6.shape)
+        #print('---')
+        P6_x = x6 + y6
+
+        P7_x = self.P7_1(P6_x)
+        x7= self.P7_2(P7_x)
+        y7 = self.P7_down(P6_x)
+        #ic(P6_x.shape)
+        #ic(x7.shape)
+        #ic(y7.shape)
+        #print('***')
+        P7_x = x7 + y7
+
+
+        return [P3_x, P4_x, P5_x, P6_x, P7_x]
+
+
+class RegressionModel(nn.Module):
+    def __init__(self, num_features_in, num_anchors=9, feature_size=256, is_bin=False):
+        super(RegressionModel, self).__init__()
+
+        # not binarizing because treating this as the first layer dealing with input
+        self.conv1 = conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
+        # self.act1 = activation()
+
+        self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+        self.act2 = activation(is_bin=is_bin)
+
+        self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+        self.act3 = activation(is_bin=is_bin)
+
+        self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+        self.act4 = activation(is_bin=is_bin)
+
+        self.output = conv2d(feature_size, num_anchors * 4, kernel_size=3, padding=1)
+
+    def forward(self, x):
+
+        out1 = self.conv1(x)
+        #out = self.act1(out)
+
+        out = self.act2(out1)
+        out2 = self.conv2(out) + out1
+        #out = self.act2(out)
+
+
+        out = self.act3(out2)
+        out3 = self.conv3(out) + out2
+        #out = self.act3(out)
+
+        out = self.act4(out3)
+        out = self.conv4(out) + out3
+        #out = self.act4(out)
+
+        out = self.output(out)
+
+        # out is B x C x W x H, with C = 4*num_anchors
+        out = out.permute(0, 2, 3, 1)
+
+        return out.contiguous().view(out.shape[0], -1, 4)
+
+
+class ClassificationModel(nn.Module):
+     def __init__(self, num_features_in, num_anchors=9, num_classes=80, prior=0.01, feature_size=256, is_bin=False):
+         super(ClassificationModel, self).__init__()
+
+         self.num_classes = num_classes
+         self.num_anchors = num_anchors
+
+         self.conv1 = conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
+         #self.act1 = activation()
+
+         self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+         self.act2 = activation(is_bin=is_bin)
+
+         self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+         self.act3 = activation(is_bin=is_bin)
+
+         self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+         self.act4 = activation(is_bin=is_bin)
+
+         self.output = conv2d(feature_size, num_anchors * num_classes, kernel_size=3, padding=1)
+         self.output_act = nn.Sigmoid()
+
+     def forward(self, x):
+         out1 = self.conv1(x)
+         #out = self.act1(out)
+
+         out = self.act2(out1)
+         out2 = self.conv2(out) + out1
+         #out = self.act2(out)
+
+         out = self.act3(out2)
+         out3 = self.conv3(out) + out2
+         #out = self.act3(out)
+
+         out = self.act4(out3)
+         out = self.conv4(out) + out3
+         #out = self.act4(out)
+
+         out = self.output(out)
+         out = self.output_act(out)
+
+         # out is B x C x W x H, with C = n_classes + n_anchors
+         out1 = out.permute(0, 2, 3, 1)
+
+         batch_size, width, height, channels = out1.shape
+
+         out2 = out1.view(batch_size, width, height, self.num_anchors, self.num_classes)
+
+         return out2.contiguous().view(x.shape[0], -1, self.num_classes)
+
 
 
 class BinaryActivation(nn.Module):
@@ -68,6 +255,7 @@ class HardBinaryConv(nn.Module):
         y = F.conv2d(x, binary_weights, stride=self.stride, padding=self.padding)
 
         return y
+
 
 
 class BasicBlock(nn.Module):
@@ -225,6 +413,8 @@ class BiRealNet(nn.Module):
 
         if self.training:
             return self.focalLoss(classification, regression, anchors, annotations)
+            #classification_loss, regression_loss, all_positive_indices = self.focalLoss(classification, regression, anchors, annotations)
+            #return classification_loss, regression_loss, classification, regression, all_positive_indices,  features
         else:
             transformed_anchors = self.regressBoxes(anchors, regression)
             transformed_anchors = self.clipBoxes(transformed_anchors, img_batch)
