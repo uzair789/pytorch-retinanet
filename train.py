@@ -46,6 +46,7 @@ def main(args=None):
     parser.add_argument('--detector', help='detection algo', type=str, default='RetinaNet')
     parser.add_argument('--arch', help='model architecture', type=str)
     parser.add_argument('--pretrain', default=False, action='store_true')
+    parser.add_argument('--freeze_batchnorm', default=False, action='store_true')
 
     parser = parser.parse_args(args)
 
@@ -63,7 +64,8 @@ def main(args=None):
               'caption': parser.caption,
               'server': parser.server,
               'arch': parser.arch,
-              'pretrain': parser.pretrain
+              'pretrain': parser.pretrain,
+              'freeze_batchorm': parser.freeze_batchnorm
 
 
     }
@@ -152,7 +154,8 @@ def main(args=None):
     loss_hist = collections.deque(maxlen=500)
 
     retinanet.train()
-    retinanet.module.freeze_bn()
+    if parser.freeze_batchnorm:
+        retinanet.module.freeze_bn()
 
     print('Num training images: {}'.format(len(dataset_train)))
 
@@ -162,7 +165,8 @@ def main(args=None):
         exp.log_metric('Current epoch', int(epoch_num))
 
         retinanet.train()
-        retinanet.module.freeze_bn()
+        if parser.freeze_batchnorm:
+            retinanet.module.freeze_bn()
 
         epoch_loss = []
 
