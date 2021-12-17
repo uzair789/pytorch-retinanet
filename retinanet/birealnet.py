@@ -348,7 +348,7 @@ class BiRealNet(nn.Module):
         except Exception as e:
             print('bias not in use in regression model')
 
-        self.freeze_bn()
+        #self.freeze_bn()
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
