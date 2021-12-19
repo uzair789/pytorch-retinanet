@@ -195,7 +195,7 @@ def main(args=None):
     loss_hist = collections.deque(maxlen=500)
 
     retinanet.train()
-    #retinanet.module.freeze_bn()
+    retinanet.module.freeze_bn()
 
     retinanet_teacher.module.freeze_bn()
     #checks = {'4':7, '8':11}
@@ -220,7 +220,7 @@ def main(args=None):
         exp.log_metric('Current epoch', int(epoch_num))
 
         retinanet.train()
-        #retinanet.module.freeze_bn()
+        retinanet.module.freeze_bn()
 
         epoch_loss = []
 
