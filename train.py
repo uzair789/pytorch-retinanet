@@ -133,7 +133,8 @@ def main(args=None):
         ##model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_OldScheduler_binary_FPN'
         ###model_folder = 'rerun_BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN'
         #model_folder = 'updated_birealnet.py_rerun_BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN(DIS-375)_batchnorm_freeze_False'
-        model_folder = 'rerun_BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN(DIS-375)_batchnorm_freeze_False'
+        #model_folder = 'rerun_BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN(DIS-375)_batchnorm_freeze_False'
+        model_folder = 'rerun_BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN(DIS-375)_batchnorm_freeze_True_load_same_binary_units'
         # retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
         #retinanet = torch.load('results/resnet18_layer123_binary_backbone_binary/coco_retinanet_11.pt')
         ##retinanet = torch.load('results/{}/coco_retinanet_11.pt'.format(model_folder))
@@ -151,8 +152,12 @@ def main(args=None):
             #                                   is_bin=False)
             #retinanet_teacher = torch.load('results/resnet18_layer1_binary_backbone_binary/coco_retinanet_11.pt')
             #retinanet_teacher = torch.load('results/resnet18_layer123_binary_backbone_distillation_head_teacher_layer12_cdc1_rdc1_fdc0/coco_retinanet_11.pt')
-            ###retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_0.pt')
-            retinanet_teacher = torch.load('results2/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False/coco_retinanet_0.pt')
+
+            # old teacher
+            retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_0.pt')
+
+            # new teacher
+            #retinanet_teacher = torch.load('results2/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False/coco_retinanet_0.pt')
             # retinanet_teacher.load_state_dict(checkpoint_teacher)
             print('teacher loaded!')
             print(retinanet_teacher)
@@ -208,8 +213,8 @@ def main(args=None):
         if str(epoch_num) in checks.keys():
             _epoch_num = str(epoch_num)
             print('teacher changed   -- loading checkpoint {}  at epoch '.format(checks[_epoch_num]), _epoch_num )
-            ###retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_{}.pt'.format(checks[_epoch_num]))
-            retinanet_teacher = torch.load('results/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False/coco_retinanet_{}.pt'.format(checks[_epoch_num]))
+            retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_{}.pt'.format(checks[_epoch_num]))
+            #retinanet_teacher = torch.load('results/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False/coco_retinanet_{}.pt'.format(checks[_epoch_num]))
             retinanet_teacher = torch.nn.DataParallel(retinanet_teacher).cuda()
             retinanet_teacher.training = True
 
@@ -231,9 +236,11 @@ def main(args=None):
                 optimizer.zero_grad()
 
                 if torch.cuda.is_available():
+                    print('train.py/student forward')
                     classification_loss, regression_loss, class_output, reg_output, positive_indices, features = retinanet([data['img'].cuda().float(), data['annot']])
                     with torch.no_grad():
                         # deactivating grads on teacher to save memory
+                        print('train.py/teacher forward')
                         _, _, class_output_teacher, reg_output_teacher, positive_indices_teacher, features_teacher = retinanet_teacher([data['img'].cuda().float(), data['annot']])
                 else:
                     classification_loss, regression_loss = retinanet([data['img'].float(), data['annot']])
