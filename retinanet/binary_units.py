@@ -37,7 +37,7 @@ class LearnableBias(nn.Module):
 
 
 class HardBinaryConv(nn.Module):
-    def __init__(self, in_chn, out_chn, kernel_size=3, stride=1, padding=0):
+    def __init__(self, in_chn, out_chn, kernel_size=3, stride=1, padding=1):
         super(HardBinaryConv, self).__init__()
         self.stride = stride
         self.padding = padding

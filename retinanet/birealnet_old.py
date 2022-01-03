@@ -7,11 +7,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-#from retinanet.model import PyramidFeatures, RegressionModel, ClassificationModel
 from retinanet.utils import BBoxTransform, ClipBoxes
 from retinanet.anchors import Anchors
 from retinanet import losses
-from retinanet.binary_units import BinaryActivation, HardBinaryConv, BinaryLinear
+
+# adding the binarization units
+#from retinanet.binary_units import BinaryActivation, HardBinaryConv, BinaryLinear
+from icecream import ic
 
 
 __all__ = ['birealnet18', 'birealnet34']
@@ -21,13 +23,11 @@ def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
                      padding=1, bias=False)
+'''
 
-
-# may be I need to use this conv1x1 in the birealnet downsmaple opearation
 def conv1x1(in_planes, out_planes, stride=1):
     """1x1 convolution"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
-'''
 
 
 def conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True, is_bin=False):
@@ -41,49 +41,6 @@ def activation(inplace=False, is_bin=False):
         return BinaryActivation()
     return nn.ReLU(inplace=inplace)
 
-'''
-class BinaryActivation(nn.Module):
-    def __init__(self):
-        super(BinaryActivation, self).__init__()
-
-    def forward(self, x):
-        out_forward = torch.sign(x)
-        #out_e1 = (x^2 + 2*x)
-        #out_e2 = (-x^2 + 2*x)
-        out_e_total = 0
-        mask1 = x < -1
-        mask2 = x < 0
-        mask3 = x < 1
-        out1 = (-1) * mask1.type(torch.float32) + (x*x + 2*x) * (1-mask1.type(torch.float32))
-        out2 = out1 * mask2.type(torch.float32) + (-x*x + 2*x) * (1-mask2.type(torch.float32))
-        out3 = out2 * mask3.type(torch.float32) + 1 * (1- mask3.type(torch.float32))
-        out = out_forward.detach() - out3.detach() + out3
-
-        return out
-
-
-class HardBinaryConv(nn.Module):
-    def __init__(self, in_chn, out_chn, kernel_size=3, stride=1, padding=1):
-        super(HardBinaryConv, self).__init__()
-        self.stride = stride
-        self.padding = padding
-        self.number_of_weights = in_chn * out_chn * kernel_size * kernel_size
-        self.shape = (out_chn, in_chn, kernel_size, kernel_size)
-        self.weights = nn.Parameter(torch.rand((self.number_of_weights,1)) * 0.001, requires_grad=True)
-
-    def forward(self, x):
-        real_weights = self.weights.view(self.shape)
-        scaling_factor = torch.mean(torch.mean(torch.mean(abs(real_weights),dim=3,keepdim=True),dim=2,keepdim=True),dim=1,keepdim=True)
-        #print(scaling_factor, flush=True)
-        scaling_factor = scaling_factor.detach()
-        binary_weights_no_grad = scaling_factor * torch.sign(real_weights)
-        cliped_weights = torch.clamp(real_weights, -1.0, 1.0)
-        binary_weights = binary_weights_no_grad.detach() - cliped_weights.detach() + cliped_weights
-        #print(binary_weights, flush=True)
-        y = F.conv2d(x, binary_weights, stride=self.stride, padding=self.padding)
-
-        return y
-'''
 
 class PyramidFeatures(nn.Module):
     def __init__(self, C3_size, C4_size, C5_size, feature_size=256, is_bin=False):
@@ -115,7 +72,7 @@ class PyramidFeatures(nn.Module):
         # "P7 is computed by applying ReLU followed by a 3x3 stride-2 conv on P6"
         self.P7_1 = activation(is_bin=is_bin)
         self.P7_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=2, padding=1, is_bin=is_bin)
-        self.avgPool7 = nn.AdaptiveAvgPool2d((7,5))
+        # self.avgPool7 = nn.AdaptiveAvgPool2d((7,5))
         self.P7_down = conv2d(feature_size, feature_size, kernel_size=1, stride=2, padding=0)
 
     def forward(self, inputs):
@@ -166,7 +123,7 @@ class RegressionModel(nn.Module):
 
         # not binarizing because treating this as the first layer dealing with input
         self.conv1 = conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
-        self.act1 = activation()
+        # self.act1 = activation()
 
         self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
         self.act2 = activation(is_bin=is_bin)
@@ -180,7 +137,6 @@ class RegressionModel(nn.Module):
         self.output = conv2d(feature_size, num_anchors * 4, kernel_size=3, padding=1)
 
     def forward(self, x):
-
 
         out1 = self.conv1(x)
         #out = self.act1(out)
@@ -207,54 +163,99 @@ class RegressionModel(nn.Module):
 
 
 class ClassificationModel(nn.Module):
-    def __init__(self, num_features_in, num_anchors=9, num_classes=80, prior=0.01, feature_size=256, is_bin=False):
-        super(ClassificationModel, self).__init__()
+     def __init__(self, num_features_in, num_anchors=9, num_classes=80, prior=0.01, feature_size=256, is_bin=False):
+         super(ClassificationModel, self).__init__()
 
-        self.num_classes = num_classes
-        self.num_anchors = num_anchors
+         self.num_classes = num_classes
+         self.num_anchors = num_anchors
 
-        self.conv1 = conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
-        self.act1 = activation()
+         self.conv1 = conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
+         #self.act1 = activation()
 
-        self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
-        self.act2 = activation(is_bin=is_bin)
+         self.conv2 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+         self.act2 = activation(is_bin=is_bin)
 
-        self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
-        self.act3 = activation(is_bin=is_bin)
+         self.conv3 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+         self.act3 = activation(is_bin=is_bin)
 
-        self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
-        self.act4 = activation(is_bin=is_bin)
+         self.conv4 = conv2d(feature_size, feature_size, kernel_size=3, padding=1, is_bin=is_bin)
+         self.act4 = activation(is_bin=is_bin)
 
-        self.output = conv2d(feature_size, num_anchors * num_classes, kernel_size=3, padding=1)
-        self.output_act = nn.Sigmoid()
+         self.output = conv2d(feature_size, num_anchors * num_classes, kernel_size=3, padding=1)
+         self.output_act = nn.Sigmoid()
+
+     def forward(self, x):
+         out1 = self.conv1(x)
+         #out = self.act1(out)
+
+         out = self.act2(out1)
+         out2 = self.conv2(out) + out1
+         #out = self.act2(out)
+
+         out = self.act3(out2)
+         out3 = self.conv3(out) + out2
+         #out = self.act3(out)
+
+         out = self.act4(out3)
+         out = self.conv4(out) + out3
+         #out = self.act4(out)
+
+         out = self.output(out)
+         out = self.output_act(out)
+
+         # out is B x C x W x H, with C = n_classes + n_anchors
+         out1 = out.permute(0, 2, 3, 1)
+
+         batch_size, width, height, channels = out1.shape
+
+         out2 = out1.view(batch_size, width, height, self.num_anchors, self.num_classes)
+
+         return out2.contiguous().view(x.shape[0], -1, self.num_classes)
+
+
+
+class BinaryActivation(nn.Module):
+    def __init__(self):
+        super(BinaryActivation, self).__init__()
 
     def forward(self, x):
-        out1 = self.conv1(x)
-        #out = self.act1(out)
+        out_forward = torch.sign(x)
+        #out_e1 = (x^2 + 2*x)
+        #out_e2 = (-x^2 + 2*x)
+        out_e_total = 0
+        mask1 = x < -1
+        mask2 = x < 0
+        mask3 = x < 1
+        out1 = (-1) * mask1.type(torch.float32) + (x*x + 2*x) * (1-mask1.type(torch.float32))
+        out2 = out1 * mask2.type(torch.float32) + (-x*x + 2*x) * (1-mask2.type(torch.float32))
+        out3 = out2 * mask3.type(torch.float32) + 1 * (1- mask3.type(torch.float32))
+        out = out_forward.detach() - out3.detach() + out3
 
-        out = self.act2(out1)
-        out2 = self.conv2(out) + out1
-        #out = self.act2(out)
+        return out
 
-        out = self.act3(out2)
-        out3 = self.conv3(out) + out2
-        #out = self.act3(out)
 
-        out = self.act4(out3)
-        out = self.conv4(out) + out3
-        #out = self.act4(out)
+class HardBinaryConv(nn.Module):
+    def __init__(self, in_chn, out_chn, kernel_size=3, stride=1, padding=1):
+        super(HardBinaryConv, self).__init__()
+        self.stride = stride
+        self.padding = padding
+        self.number_of_weights = in_chn * out_chn * kernel_size * kernel_size
+        self.shape = (out_chn, in_chn, kernel_size, kernel_size)
+        self.weights = nn.Parameter(torch.rand((self.number_of_weights,1)) * 0.001, requires_grad=True)
 
-        out = self.output(out)
-        out = self.output_act(out)
+    def forward(self, x):
+        real_weights = self.weights.view(self.shape)
+        scaling_factor = torch.mean(torch.mean(torch.mean(abs(real_weights),dim=3,keepdim=True),dim=2,keepdim=True),dim=1,keepdim=True)
+        #print(scaling_factor, flush=True)
+        scaling_factor = scaling_factor.detach()
+        binary_weights_no_grad = scaling_factor * torch.sign(real_weights)
+        cliped_weights = torch.clamp(real_weights, -1.0, 1.0)
+        binary_weights = binary_weights_no_grad.detach() - cliped_weights.detach() + cliped_weights
+        #print(binary_weights, flush=True)
+        y = F.conv2d(x, binary_weights, stride=self.stride, padding=self.padding)
 
-        # out is B x C x W x H, with C = n_classes + n_anchors
-        out1 = out.permute(0, 2, 3, 1)
+        return y
 
-        batch_size, width, height, channels = out1.shape
-
-        out2 = out1.view(batch_size, width, height, self.num_anchors, self.num_classes)
-
-        return out2.contiguous().view(x.shape[0], -1, self.num_classes)
 
 
 class BasicBlock(nn.Module):
@@ -347,19 +348,16 @@ class BiRealNet(nn.Module):
         except Exception as e:
             print('bias not in use in regression model')
 
-        self.freeze_bn()
+        #self.freeze_bn()
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
     def _make_layer(self, block, planes, blocks, stride=1):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
-            print('------>>>block downsample stride = ', stride)
             downsample = nn.Sequential(
                 nn.AvgPool2d(kernel_size=2, stride=stride),
-                #conv1x1(self.inplanes, planes * block.expansion),
-                conv2d(self.inplanes, planes * block.expansion,
-                       kernel_size=1, stride=1, bias=False, is_bin=False),
+                conv1x1(self.inplanes, planes * block.expansion),
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
@@ -414,6 +412,7 @@ class BiRealNet(nn.Module):
         anchors = self.anchors(img_batch)
 
         if self.training:
+            #return self.focalLoss(classification, regression, anchors, annotations)
             classification_loss, regression_loss, all_positive_indices = self.focalLoss(classification, regression, anchors, annotations)
             return classification_loss, regression_loss, classification, regression, all_positive_indices,  features
         else:
