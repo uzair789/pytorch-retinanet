@@ -89,6 +89,7 @@ class PyramidFeatures(nn.Module):
     def __init__(self, C3_size, C4_size, C5_size, feature_size=256, is_bin=False):
         super(PyramidFeatures, self).__init__()
 
+        print('birealnet.py/FPN init')
         # upsample C5 to get P5 from the FPN paper
         self.P5_1 = conv2d(C5_size, feature_size, kernel_size=1, stride=1, padding=0)
         self.P5_upsampled = nn.Upsample(scale_factor=2, mode='nearest')
@@ -119,6 +120,7 @@ class PyramidFeatures(nn.Module):
         self.P7_down = conv2d(feature_size, feature_size, kernel_size=1, stride=2, padding=0)
 
     def forward(self, inputs):
+        print('birealnet.py/FPN forward')
         C3, C4, C5 = inputs
 
         P5_x = self.P5_1(C5)
@@ -164,6 +166,7 @@ class RegressionModel(nn.Module):
     def __init__(self, num_features_in, num_anchors=9, feature_size=256, is_bin=False):
         super(RegressionModel, self).__init__()
 
+        print('birealnet.py/Reg init')
         # not binarizing because treating this as the first layer dealing with input
         self.conv1 = conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
         self.act1 = activation()
@@ -181,7 +184,7 @@ class RegressionModel(nn.Module):
 
     def forward(self, x):
 
-
+        print('birealnet.py/ Reg forward')
         out1 = self.conv1(x)
         #out = self.act1(out)
 
@@ -213,6 +216,7 @@ class ClassificationModel(nn.Module):
         self.num_classes = num_classes
         self.num_anchors = num_anchors
 
+        print('birealnet.py/Class init')
         self.conv1 = conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
         self.act1 = activation()
 
@@ -229,6 +233,8 @@ class ClassificationModel(nn.Module):
         self.output_act = nn.Sigmoid()
 
     def forward(self, x):
+
+        print('birealnet.py/class forward')
         out1 = self.conv1(x)
         #out = self.act1(out)
 

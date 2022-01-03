@@ -8,13 +8,17 @@ from retinanet.binary_units import BinaryActivation, HardBinaryConv
 def conv3x3(in_channels, out_channels, stride=1, is_bin=True):
 
     if is_bin:
+        print('retinanet/utils.py conv3x3 binary, is_bin = ', is_bin)
         return HardBinaryConv(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
+    print('retinanet/utils.py conv3x3 regular, is_bin=', is_bin)
     return nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
 
 
 def activation(inplace=False, is_bin=True):
     if is_bin:
+        #print('retinanet/utils.py activation binary, is_bin = ', is_bin)
         return BinaryActivation()
+    #print('retinanet/utils.py regular, is_bin=',is_bin)
     return nn.ReLU(inplace=inplace)
 
 
@@ -43,6 +47,7 @@ class BasicBlock(nn.Module):
         self.stride = stride
 
     def forward(self, x):
+        #print('retinanet/utils.py BasicBlock forward')
         residual = x
 
         out = self.conv1(x)
