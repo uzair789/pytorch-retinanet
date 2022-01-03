@@ -119,7 +119,7 @@ class PyramidFeatures(nn.Module):
         self.avgPool7 = nn.AdaptiveAvgPool2d((7,5))
         self.P7_down = conv2d(feature_size, feature_size, kernel_size=1, stride=2, padding=0)
 
-    def forward(self, inputs):
+    def forward1(self, inputs):
         print('birealnet.py/FPN forward')
         C3, C4, C5 = inputs
 
@@ -162,6 +162,34 @@ class PyramidFeatures(nn.Module):
         return [P3_x, P4_x, P5_x, P6_x, P7_x]
 
 
+    def forward2(self, inputs):
+        print('birealnet.py/FPN forward standard')
+        C3, C4, C5 = inputs
+
+        P5_x = self.P5_1(C5)
+        P5_upsampled_x = self.P5_upsampled(P5_x)
+        P5_x = self.P5_2(P5_x)
+
+        P4_x = self.P4_1(C4)
+        P4_x = P5_upsampled_x + P4_x
+        P4_upsampled_x = self.P4_upsampled(P4_x)
+        P4_x = self.P4_2(P4_x)
+
+        P3_x = self.P3_1(C3)
+        P3_x = P3_x + P4_upsampled_x
+        P3_x = self.P3_2(P3_x)
+
+        P6_x = self.P6(C5)
+
+        P7_x = self.P7_1(P6_x)
+        P7_x = self.P7_2(P7_x)
+
+        return [P3_x, P4_x, P5_x, P6_x, P7_x]
+
+    def forward(self, inputs):
+        return self.forward2(inputs)
+
+
 class RegressionModel(nn.Module):
     def __init__(self, num_features_in, num_anchors=9, feature_size=256, is_bin=False):
         super(RegressionModel, self).__init__()
@@ -182,7 +210,7 @@ class RegressionModel(nn.Module):
 
         self.output = conv2d(feature_size, num_anchors * 4, kernel_size=3, padding=1)
 
-    def forward(self, x):
+    def forward1(self, x):
 
         print('birealnet.py/ Reg forward')
         out1 = self.conv1(x)
@@ -208,6 +236,30 @@ class RegressionModel(nn.Module):
 
         return out.contiguous().view(out.shape[0], -1, 4)
 
+    def forward2(self, x):
+        print('birealnet.py/Reg forward standard')
+        out = self.conv1(x)
+        out = self.act1(out)
+
+        out = self.conv2(out)
+        out = self.act2(out)
+
+        out = self.conv3(out)
+        out = self.act3(out)
+
+        out = self.conv4(out)
+        out = self.act4(out)
+
+        out = self.output(out)
+
+        # out is B x C x W x H, with C = 4*num_anchors
+        out = out.permute(0, 2, 3, 1)
+
+        return out.contiguous().view(out.shape[0], -1, 4)
+
+    def forward(self, inputs):
+        return self.forward2(inputs)
+
 
 class ClassificationModel(nn.Module):
     def __init__(self, num_features_in, num_anchors=9, num_classes=80, prior=0.01, feature_size=256, is_bin=False):
@@ -232,7 +284,7 @@ class ClassificationModel(nn.Module):
         self.output = conv2d(feature_size, num_anchors * num_classes, kernel_size=3, padding=1)
         self.output_act = nn.Sigmoid()
 
-    def forward(self, x):
+    def forward1(self, x):
 
         print('birealnet.py/class forward')
         out1 = self.conv1(x)
@@ -261,6 +313,36 @@ class ClassificationModel(nn.Module):
         out2 = out1.view(batch_size, width, height, self.num_anchors, self.num_classes)
 
         return out2.contiguous().view(x.shape[0], -1, self.num_classes)
+
+
+    def forward2(self, x):
+        print('birealnet.py/CLass forward standard')
+        out = self.conv1(x)
+        out = self.act1(out)
+
+        out = self.conv2(out)
+        out = self.act2(out)
+
+        out = self.conv3(out)
+        out = self.act3(out)
+
+        out = self.conv4(out)
+        out = self.act4(out)
+
+        out = self.output(out)
+        out = self.output_act(out)
+
+        # out is B x C x W x H, with C = n_classes + n_anchors
+        out1 = out.permute(0, 2, 3, 1)
+
+        batch_size, width, height, channels = out1.shape
+
+        out2 = out1.view(batch_size, width, height, self.num_anchors, self.num_classes)
+
+        return out2.contiguous().view(x.shape[0], -1, self.num_classes)
+
+    def forward(self, inputs):
+        return self.forward2(inputs)
 
 
 class BasicBlock(nn.Module):
