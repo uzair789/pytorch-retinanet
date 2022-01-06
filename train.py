@@ -45,7 +45,7 @@ def main(args=None):
     parser.add_argument('--batch_size', help='Batch size', type=int, default=2)
     parser.add_argument('--lr', help='Learning rate', type=float, default=1e-5)
     parser.add_argument('--caption', help='Any thing in particular about the experiment', type=str)
-    parser.add_argument('--server', help='seerver name', type=str, default='ultron')
+    parser.add_argument('--server', help='server name', type=str, default='ultron')
     parser.add_argument('--detector', help='detection algo', type=str, default='RetinaNet')
     parser.add_argument('--lrScheduler', help='LR Scheduler', type=str, default='Old')
     parser.add_argument('--cdc', help='Classification Distillation Coeff', type=float, default=1)
@@ -53,6 +53,7 @@ def main(args=None):
     parser.add_argument('--fdc', help='Feature Distillation Coeff', type=float, default=1)
     parser.add_argument('--clc', help='CLassification losss Coeff', type=float, default=1)
     parser.add_argument('--rlc', help='Regression loss Coeff', type=float, default=1)
+    parser.add_argument('--match_forwards', default=False, action='store_true')
 
     parser = parser.parse_args(args)
 
@@ -74,7 +75,8 @@ def main(args=None):
               'regression_distill_coeff': parser.rdc,
               'feature_distill_coeff': parser.fdc,
               'classification_loss_coeff': parser.clc,
-              'regression_loss_coeff': parser.rlc
+              'regression_loss_coeff': parser.rlc,
+              'match_forwards': parser.match_forwards
 
 
     }
@@ -154,10 +156,10 @@ def main(args=None):
             #retinanet_teacher = torch.load('results/resnet18_layer123_binary_backbone_distillation_head_teacher_layer12_cdc1_rdc1_fdc0/coco_retinanet_11.pt')
 
             # old teacher
-            retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_0.pt')
+            #retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_0.pt')
 
             # new teacher
-            #retinanet_teacher = torch.load('results2/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False/coco_retinanet_0.pt')
+            retinanet_teacher = torch.load('results2/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False/coco_retinanet_0.pt')
             # retinanet_teacher.load_state_dict(checkpoint_teacher)
             print('teacher loaded!')
             print(retinanet_teacher)
@@ -213,8 +215,8 @@ def main(args=None):
         if str(epoch_num) in checks.keys():
             _epoch_num = str(epoch_num)
             print('teacher changed   -- loading checkpoint {}  at epoch '.format(checks[_epoch_num]), _epoch_num )
-            retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_{}.pt'.format(checks[_epoch_num]))
-            #retinanet_teacher = torch.load('results/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False/coco_retinanet_{}.pt'.format(checks[_epoch_num]))
+            #retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_{}.pt'.format(checks[_epoch_num]))
+            retinanet_teacher = torch.load('results/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False/coco_retinanet_{}.pt'.format(checks[_epoch_num]))
             retinanet_teacher = torch.nn.DataParallel(retinanet_teacher).cuda()
             retinanet_teacher.training = True
 
@@ -237,7 +239,7 @@ def main(args=None):
 
                 if torch.cuda.is_available():
                     print('train.py/student forward')
-                    classification_loss, regression_loss, class_output, reg_output, positive_indices, features = retinanet([data['img'].cuda().float(), data['annot']])
+                    classification_loss, regression_loss, class_output, reg_output, positive_indices, features = retinanet([data['img'].cuda().float(), data['annot']], match_forwards=parser.match_forwards)
                     with torch.no_grad():
                         # deactivating grads on teacher to save memory
                         print('train.py/teacher forward')
