@@ -57,7 +57,7 @@ class PyramidFeatures(nn.Module):
         self.P7_2 = conv2d(feature_size, feature_size, kernel_size=3, stride=2, padding=1)
 
     def forward(self, inputs):
-        print('model.py/FPN forward standard')
+        #print('model.py/FPN forward standard')
         C3, C4, C5 = inputs
 
         P5_x = self.P5_1(C5)
@@ -100,7 +100,7 @@ class RegressionModel(nn.Module):
         self.output = conv2d(feature_size, num_anchors * 4, kernel_size=3, padding=1)
 
     def forward(self, x):
-        print('model.py/Reg forward standard')
+        #print('model.py/Reg forward standard')
         out = self.conv1(x)
         out = self.act1(out)
 
@@ -144,7 +144,7 @@ class ClassificationModel(nn.Module):
         self.output_act = nn.Sigmoid()
 
     def forward(self, x):
-        print('model.py/CLass forward standard')
+        #print('model.py/CLass forward standard')
         out = self.conv1(x)
         out = self.act1(out)
 

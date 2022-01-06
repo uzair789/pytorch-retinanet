@@ -11,7 +11,7 @@ class BinaryActivation(nn.Module):
         super(BinaryActivation, self).__init__()
 
     def forward(self, x):
-        print('retinanet/binary_units.py/BinaryActivation forward')
+        #print('retinanet/binary_units.py/BinaryActivation forward')
         out_forward = torch.sign(x)
         #out_e1 = (x^2 + 2*x)
         #out_e2 = (-x^2 + 2*x)
@@ -40,7 +40,7 @@ class LearnableBias(nn.Module):
 class HardBinaryConv(nn.Module):
     def __init__(self, in_chn, out_chn, kernel_size=3, stride=1, padding=1):
         super(HardBinaryConv, self).__init__()
-        print('retinanet/binary_units.py/HardBinaryCOnv init')
+        #print('retinanet/binary_units.py/HardBinaryCOnv init')
         self.stride = stride
         self.padding = padding
         # print('----------------in:{}, out:{}, k:{}-----------------'.format(in_chn, out_chn, kernel_size))
@@ -50,7 +50,7 @@ class HardBinaryConv(nn.Module):
         self.weight = nn.Parameter(torch.rand((self.shape)) * 0.001, requires_grad=True)
 
     def forward(self, x):
-        print('retinanet/binary_units.py/HardBinaryCOnv forward')
+        #print('retinanet/binary_units.py/HardBinaryCOnv forward')
         # print('Binary running ------------------------------------')
         #real_weights = self.weights.view(self.shape)
         real_weights = self.weight
