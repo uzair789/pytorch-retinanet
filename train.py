@@ -159,7 +159,7 @@ def main(args=None):
             #retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_0.pt')
 
             # new teacher
-            retinanet_teacher = torch.load('results2/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False/coco_retinanet_0.pt')
+            retinanet_teacher = torch.load('results2/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_True/coco_retinanet_0.pt')
             # retinanet_teacher.load_state_dict(checkpoint_teacher)
             print('teacher loaded!')
             print(retinanet_teacher)
@@ -216,7 +216,7 @@ def main(args=None):
             _epoch_num = str(epoch_num)
             print('teacher changed   -- loading checkpoint {}  at epoch '.format(checks[_epoch_num]), _epoch_num )
             #retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_{}.pt'.format(checks[_epoch_num]))
-            retinanet_teacher = torch.load('results/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False/coco_retinanet_{}.pt'.format(checks[_epoch_num]))
+            retinanet_teacher = torch.load('results/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_True/coco_retinanet_{}.pt'.format(checks[_epoch_num]))
             retinanet_teacher = torch.nn.DataParallel(retinanet_teacher).cuda()
             retinanet_teacher.training = True
 
