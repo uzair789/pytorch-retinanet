@@ -187,9 +187,10 @@ class PyramidFeatures(nn.Module):
         return [P3_x, P4_x, P5_x, P6_x, P7_x]
 
     def forward(self, inputs, match_forwards=False):
-        if match_forwards:
-            return self.forward2(inputs)
-        return self.forward1(inputs)
+        #if match_forwards:
+        #    return self.forward2(inputs)
+        #return self.forward1(inputs)
+        return self.forward2(inputs)
 
 
 class RegressionModel(nn.Module):
@@ -260,9 +261,10 @@ class RegressionModel(nn.Module):
         return out.contiguous().view(out.shape[0], -1, 4)
 
     def forward(self, inputs, match_forwards=False):
-        if match_forwards:
-            return self.forward2(inputs)
-        return self.forward1(inputs)
+        #if match_forwards:
+        #    return self.forward2(inputs)
+        #return self.forward1(inputs)
+        return self.forward2(inputs)
 
 
 class ClassificationModel(nn.Module):
@@ -346,9 +348,10 @@ class ClassificationModel(nn.Module):
         return out2.contiguous().view(x.shape[0], -1, self.num_classes)
 
     def forward(self, inputs, match_forwards=False):
-        if match_forwards:
-            return self.forward2(inputs)
-        return self.forward1(inputs)
+        #if match_forwards:
+        #    return self.forward2(inputs)
+        #return self.forward1(inputs)
+        return self.forward2(inputs)
 
 
 class BasicBlock(nn.Module):
