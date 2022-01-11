@@ -106,3 +106,4 @@ results/
 *.pth
 *.json
 kill_process.sh
+BiRealNet18_Imagenet_pretrain/
