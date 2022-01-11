@@ -157,7 +157,7 @@ def main(args=None):
             #retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_0.pt')
 
             # new teacher
-            teacher_path = 'results2/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_True'
+            teacher_path = 'results2/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False'
             retinanet_teacher = torch.load('{}/coco_retinanet_0.pt'.format(teacher_path))
             # retinanet_teacher.load_state_dict(checkpoint_teacher)
             print('teacher loaded!')
