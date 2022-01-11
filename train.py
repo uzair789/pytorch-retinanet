@@ -53,7 +53,6 @@ def main(args=None):
     parser.add_argument('--fdc', help='Feature Distillation Coeff', type=float, default=1)
     parser.add_argument('--clc', help='CLassification losss Coeff', type=float, default=1)
     parser.add_argument('--rlc', help='Regression loss Coeff', type=float, default=1)
-    parser.add_argument('--match_forwards', default=False, action='store_true')
 
     parser = parser.parse_args(args)
 
@@ -75,8 +74,7 @@ def main(args=None):
               'regression_distill_coeff': parser.rdc,
               'feature_distill_coeff': parser.fdc,
               'classification_loss_coeff': parser.clc,
-              'regression_loss_coeff': parser.rlc,
-              'match_forwards': parser.match_forwards
+              'regression_loss_coeff': parser.rlc
 
 
     }
@@ -159,7 +157,8 @@ def main(args=None):
             #retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_0.pt')
 
             # new teacher
-            retinanet_teacher = torch.load('results2/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_True/coco_retinanet_0.pt')
+            teacher_path = 'results2/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_True'
+            retinanet_teacher = torch.load('{}/coco_retinanet_0.pt'.format(teacher_path))
             # retinanet_teacher.load_state_dict(checkpoint_teacher)
             print('teacher loaded!')
             print(retinanet_teacher)
@@ -216,7 +215,7 @@ def main(args=None):
             _epoch_num = str(epoch_num)
             print('teacher changed   -- loading checkpoint {}  at epoch '.format(checks[_epoch_num]), _epoch_num )
             #retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_{}.pt'.format(checks[_epoch_num]))
-            retinanet_teacher = torch.load('results/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_True/coco_retinanet_{}.pt'.format(checks[_epoch_num]))
+            retinanet_teacher = torch.load('{}/coco_retinanet_{}.pt'.format(teacher_path, checks[_epoch_num]))
             retinanet_teacher = torch.nn.DataParallel(retinanet_teacher).cuda()
             retinanet_teacher.training = True
 
@@ -239,7 +238,7 @@ def main(args=None):
 
                 if torch.cuda.is_available():
                     print('train.py/student forward')
-                    classification_loss, regression_loss, class_output, reg_output, positive_indices, features = retinanet([data['img'].cuda().float(), data['annot']], match_forwards=parser.match_forwards)
+                    classification_loss, regression_loss, class_output, reg_output, positive_indices, features = retinanet([data['img'].cuda().float(), data['annot']])
                     with torch.no_grad():
                         # deactivating grads on teacher to save memory
                         print('train.py/teacher forward')
