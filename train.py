@@ -53,6 +53,7 @@ def main(args=None):
     parser.add_argument('--fdc', help='Feature Distillation Coeff', type=float, default=1)
     parser.add_argument('--clc', help='CLassification losss Coeff', type=float, default=1)
     parser.add_argument('--rlc', help='Regression loss Coeff', type=float, default=1)
+    parser.add_argument('--freeze_batchnorm', default=False, action='store_true')
 
     parser = parser.parse_args(args)
 
@@ -74,7 +75,8 @@ def main(args=None):
               'regression_distill_coeff': parser.rdc,
               'feature_distill_coeff': parser.fdc,
               'classification_loss_coeff': parser.clc,
-              'regression_loss_coeff': parser.rlc
+              'regression_loss_coeff': parser.rlc,
+              'freeze_batchnorm': parser.freeze_batchnorm
 
 
     }
@@ -134,7 +136,12 @@ def main(args=None):
         ###model_folder = 'rerun_BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN'
         #model_folder = 'updated_birealnet.py_rerun_BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN(DIS-375)_batchnorm_freeze_False'
         #model_folder = 'rerun_BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN(DIS-375)_batchnorm_freeze_False'
-        model_folder = 'rerun_BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN(DIS-375)_batchnorm_freeze_True_load_same_binary_units'
+
+        # Dis - 681
+        #model_folder = 'rerun_BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN(DIS-375)_batchnorm_freeze_True_load_same_binary_units' #Dis-681
+
+        #Dis-683
+        model_folder = 'rerun_BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN(DIS-375)_batchnorm_freeze_False_load_same_binary_units' #Dis-681
         # retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True, is_bin=True)
         #retinanet = torch.load('results/resnet18_layer123_binary_backbone_binary/coco_retinanet_11.pt')
         ##retinanet = torch.load('results/{}/coco_retinanet_11.pt'.format(model_folder))
@@ -156,7 +163,9 @@ def main(args=None):
             # old teacher
             #retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_0.pt')
 
-            # new teacher
+            # new teacher Dis-645
+            #teacher_path = 'results2/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_True'
+            # new teacher Dis-644
             teacher_path = 'results2/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False'
             retinanet_teacher = torch.load('{}/coco_retinanet_0.pt'.format(teacher_path))
             # retinanet_teacher.load_state_dict(checkpoint_teacher)
@@ -202,7 +211,8 @@ def main(args=None):
     loss_hist = collections.deque(maxlen=500)
 
     retinanet.train()
-    retinanet.module.freeze_bn()
+    if parser.freeze_batchnorm:
+        retinanet.module.freeze_bn()
 
     retinanet_teacher.module.freeze_bn()
     #checks = {'4':7, '8':11}
@@ -227,7 +237,8 @@ def main(args=None):
         exp.log_metric('Current epoch', int(epoch_num))
 
         retinanet.train()
-        retinanet.module.freeze_bn()
+        if parser.freeze_batchnorm:
+            retinanet.module.freeze_bn()
 
         epoch_loss = []
 

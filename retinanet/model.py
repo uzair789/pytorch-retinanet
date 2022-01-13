@@ -231,7 +231,7 @@ class ResNet(nn.Module):
         except Exception as e:
             print('bias not in use in regression model')
 
-        self.freeze_bn()
+        #self.freeze_bn()
 
     def _make_layer(self, block, planes, blocks, stride=1, is_bin=False):
         downsample = None
