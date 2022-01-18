@@ -7,7 +7,7 @@ ARCH='Resnet'
 #ARCH='BiRealNet18'
 gpu=0
 
-depths=(101 50 18)
+depths=(34)
 for DEPTH in ${depths[@]}; do
         EXP_NAME="Resnet${DEPTH}_backbone_full_precision_pretrain_True_freezebatchnorm_False"
 	gpu2=$(($gpu+1))
