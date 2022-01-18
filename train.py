@@ -9,8 +9,7 @@ import torch.optim as optim
 from torchvision import transforms
 
 from retinanet import model
-from retinanet.birealnet import birealnet18
-
+from retinanet.birealnet import birealnet18, birealnet34
 from retinanet.dataloader import CocoDataset, CSVDataset, collater, Resizer, AspectRatioBasedSampler, Augmenter, \
     Normalizer
 from torch.utils.data import DataLoader
@@ -48,6 +47,7 @@ def main(args=None):
     parser.add_argument('--server', help='server name', type=str, default='ultron')
     parser.add_argument('--detector', help='detection algo', type=str, default='RetinaNet')
     parser.add_argument('--lrScheduler', help='LR Scheduler', type=str, default='Old')
+    parser.add_argument('--arch', help='BirealNet18 or BiRealNet34', type=str, default='BiRealNet18')
     parser.add_argument('--cdc', help='Classification Distillation Coeff', type=float, default=1)
     parser.add_argument('--rdc', help='Regression Distillation Coeff', type=float, default=1)
     parser.add_argument('--fdc', help='Feature Distillation Coeff', type=float, default=1)
@@ -76,12 +76,13 @@ def main(args=None):
               'feature_distill_coeff': parser.fdc,
               'classification_loss_coeff': parser.clc,
               'regression_loss_coeff': parser.rlc,
-              'freeze_batchnorm': parser.freeze_batchnorm
+              'freeze_batchnorm': parser.freeze_batchnorm,
+              'arch':parser.arch
 
 
     }
 
-    exp = neptune.create_experiment(name=parser.exp_name, params=PARAMS, tags=['resnet'+str(parser.depth),
+    exp = neptune.create_experiment(name=parser.exp_name, params=PARAMS, tags=[parser.arch,
                                                                                 parser.caption,
                                                                                 parser.detector,
                                                                                 parser.dataset,
@@ -172,8 +173,25 @@ def main(args=None):
             print('teacher loaded!')
             print(retinanet_teacher)
 
-    elif parser.depth == 34:
-        retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=True)
+    elif parser.depth == 34 and parser.arch == 'BiRealNet34':
+        #retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
+        # load student
+
+        #Dis-720
+        model_folder = 'BiRealNet34_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN_batchnorm_freeze_False_load_same_binary_units'
+        retinanet = torch.load('results2/{}/coco_retinanet_4.pt'.format(model_folder))
+
+        print('student loaded in 34!')
+        print(retinanet)
+        # load teacher
+
+        # DIs-716
+        teacher_path = 'results2/Resnet34_backbone_full_precision_pretrain_True_freezebatchnorm_False'
+        retinanet_teacher = torch.load('{}/coco_retinanet_0.pt'.format(teacher_path))
+        print('teacher loaded in 34!')
+        print(retinanet_teacher)
+
+
     elif parser.depth == 50:
         retinanet = model.resnet50(num_classes=dataset_train.num_classes(), pretrained=True)
     elif parser.depth == 101:

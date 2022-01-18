@@ -568,6 +568,7 @@ def birealnet18(checkpoint_path=None, **kwargs):
 
 def birealnet34(pretrained=False, **kwargs):
     """Constructs a BiRealNet-34 model. """
+    print('Loading BiRealNet34 without Pretrain')
     model = BiRealNet(BasicBlock, [6, 8, 12, 6], **kwargs)
     return model
 
