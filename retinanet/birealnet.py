@@ -474,3 +474,9 @@ def birealnet34(pretrained=False, **kwargs):
     model = BiRealNet(BasicBlock, [6, 8, 12, 6], **kwargs)
     return model
 
+
+def birealnet10(pretrained=False, **kwargs):
+    """Constructs a BiRealNet-10 model to study the rewiring hypothesis. """
+    print('Loading BiRealNet10 without Pretrain')
+    model = BiRealNet(BasicBlock, [2, 2, 2, 2], **kwargs)
+    return model

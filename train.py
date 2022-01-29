@@ -9,7 +9,7 @@ import torch.optim as optim
 from torchvision import transforms
 
 from retinanet import model
-from retinanet.birealnet import birealnet18, birealnet34
+from retinanet.birealnet import birealnet18, birealnet34, birealnet10
 from retinanet.dataloader import CocoDataset, CSVDataset, collater, Resizer, AspectRatioBasedSampler, Augmenter, \
     Normalizer
 from torch.utils.data import DataLoader
@@ -128,6 +128,12 @@ def main(args=None):
         if parser.pretrain:
             checkpoint_path = 'None'# havenot trained a pretrained mdoel for depth 34
         retinanet = birealnet34(checkpoint_path, num_classes=dataset_train.num_classes())
+    elif parser.depth == 10 and parser.arch == 'BiRealNet10':
+        #retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
+        checkpoint_path = None
+        if parser.pretrain:
+            checkpoint_path = 'None'# havenot trained a pretrained mdoel for depth 10
+        retinanet = birealnet10(checkpoint_path, num_classes=dataset_train.num_classes())
     elif parser.depth == 50:
         retinanet = model.resnet50(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
     elif parser.depth == 101:
