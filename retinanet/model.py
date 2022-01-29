@@ -319,6 +319,19 @@ class ResNet(nn.Module):
             return [finalScores, finalAnchorBoxesIndexes, finalAnchorBoxesCoordinates]
 
 
+def resnet10(num_classes, pretrained=False, **kwargs):
+    """Constructs a ResNet-10 model.
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    print("building resnet10")
+    model = ResNet(num_classes, BasicBlock, [1, 1, 1, 1], **kwargs)
+    if pretrained:
+        print("building resnet10 with resnet18 pretrain initialization")
+        model.load_state_dict(model_zoo.load_url(model_urls['resnet18'], model_dir='.'), strict=False)
+    return model
+
+
 def resnet18(num_classes, pretrained=False, **kwargs):
     """Constructs a ResNet-18 model.
     Args:

@@ -116,6 +116,8 @@ def main(args=None):
     # Create the model
     if parser.depth == 18 and parser.arch == 'Resnet':
         retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
+    elif parser.depth == 10 and parser.arch == 'Resnet':
+        retinanet = model.resnet10(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
     elif parser.depth == 18 and parser.arch == 'BiRealNet18':
         checkpoint_path = None
         if parser.pretrain:
@@ -131,6 +133,8 @@ def main(args=None):
         retinanet = model.resnet152(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
     else:
         raise ValueError('Unsupported model depth, must be one of 18, 34, 50, 101, 152')
+
+    print(retinanet)
 
     use_gpu = True
 
