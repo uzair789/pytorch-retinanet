@@ -555,6 +555,13 @@ class BiRealNet(nn.Module):
             return [finalScores, finalAnchorBoxesIndexes, finalAnchorBoxesCoordinates]
 
 
+def birealnet10(pretrained=False, **kwargs):
+    """Constructs a BiRealNet-10 model to study the rewiring hypothesis. """
+    print('Loading BiRealNet10 without Pretrain')
+    model = BiRealNet(BasicBlock, [2, 2, 2, 2], **kwargs)
+    return model
+
+
 def birealnet18(checkpoint_path=None, **kwargs):
     """Constructs a BiRealNet-18 model. """
     print('Loading BiRealNet18')

@@ -174,23 +174,22 @@ def main(args=None):
             print(retinanet_teacher)
 
     elif parser.depth == 34 and parser.arch == 'BiRealNet34':
-        #retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
         # load student
-
         #Dis-720
         model_folder = 'BiRealNet34_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN_batchnorm_freeze_False_load_same_binary_units'
-        retinanet = torch.load('results2/{}/coco_retinanet_4.pt'.format(model_folder))
 
-        print('student loaded in 34!')
-        print(retinanet)
         # load teacher
-
         # DIs-716
         teacher_path = 'results2/Resnet34_backbone_full_precision_pretrain_True_freezebatchnorm_False'
-        retinanet_teacher = torch.load('{}/coco_retinanet_0.pt'.format(teacher_path))
-        print('teacher loaded in 34!')
-        print(retinanet_teacher)
 
+    elif parser.depth == 10 and parser.arch == 'BiRealNet10':
+        # load student
+        # Dis-726
+        model_folder = 'BiRealNet10_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN_batchnorm_freeze_False_load_same_binary_units'
+
+        # load teacher
+        # Dis-729
+        teacher_path = 'results2/Resnet10_backbone_full_precision_pretrain_True_freezebatchnorm_False'
 
     elif parser.depth == 50:
         retinanet = model.resnet50(num_classes=dataset_train.num_classes(), pretrained=True)
@@ -200,8 +199,17 @@ def main(args=None):
         retinanet = model.resnet152(num_classes=dataset_train.num_classes(), pretrained=True)
     else:
         raise ValueError('Unsupported model depth, must be one of 18, 34, 50, 101, 152')
-
     use_gpu = True
+
+    # Load student
+    retinanet = torch.load('results2/{}/coco_retinanet_4.pt'.format(model_folder))
+    print('student loaded! ', model_folder)
+    print(retinanet)
+
+    # Load Teacher
+    retinanet_teacher = torch.load('{}/coco_retinanet_0.pt'.format(teacher_path))
+    print('teacher loaded! ', teacher_path)
+    print(retinanet_teacher)
 
     if use_gpu:
         if torch.cuda.is_available():
