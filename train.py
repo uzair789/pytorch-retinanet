@@ -54,6 +54,8 @@ def main(args=None):
     parser.add_argument('--clc', help='CLassification losss Coeff', type=float, default=1)
     parser.add_argument('--rlc', help='Regression loss Coeff', type=float, default=1)
     parser.add_argument('--freeze_batchnorm', default=False, action='store_true')
+    parser.add_argument('--normalization', default=False, action='store_true')
+    parser.add_argument('--change_teacher', default=False, action='store_true')
 
     parser = parser.parse_args(args)
 
@@ -147,11 +149,11 @@ def main(args=None):
         #retinanet = torch.load('results/resnet18_layer123_binary_backbone_binary/coco_retinanet_11.pt')
         ##retinanet = torch.load('results/{}/coco_retinanet_11.pt'.format(model_folder))
         ###retinanet = torch.load('results/{}/coco_retinanet_4.pt'.format(model_folder))
-        retinanet = torch.load('results2/{}/coco_retinanet_4.pt'.format(model_folder))
+        #retinanet = torch.load('results2/{}/coco_retinanet_4.pt'.format(model_folder))
         #retinanet = birealnet18(checkpoint_path=None, num_classes=dataset_train.num_classes())
         #retinanet.load_state_dict(checkpoint)
-        print('student loaded!')
-        print(retinanet)
+        #print('student loaded!')
+        #print(retinanet)
 
 
         if distillation:
@@ -168,10 +170,10 @@ def main(args=None):
             #teacher_path = 'results2/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_True'
             # new teacher Dis-644
             teacher_path = 'results2/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False'
-            retinanet_teacher = torch.load('{}/coco_retinanet_0.pt'.format(teacher_path))
+            #retinanet_teacher = torch.load('{}/coco_retinanet_0.pt'.format(teacher_path))
             # retinanet_teacher.load_state_dict(checkpoint_teacher)
-            print('teacher loaded!')
-            print(retinanet_teacher)
+            #print('teacher loaded!')
+            #print(retinanet_teacher)
 
     elif parser.depth == 34 and parser.arch == 'BiRealNet34':
         # load student
@@ -207,7 +209,7 @@ def main(args=None):
     print(retinanet)
 
     # Load Teacher
-    retinanet_teacher = torch.load('{}/coco_retinanet_0.pt'.format(teacher_path))
+    retinanet_teacher = torch.load('{}/coco_retinanet_11.pt'.format(teacher_path))
     print('teacher loaded! ', teacher_path)
     print(retinanet_teacher)
 
@@ -241,24 +243,21 @@ def main(args=None):
         retinanet.module.freeze_bn()
 
     retinanet_teacher.module.freeze_bn()
-    #checks = {'4':7, '8':11}
-    #checks = {'1':2, '2':3, '3':4, '4':5, '5':6, '6':7, '7':8, '8':9, '9':10, '10':11}
-    checks = {'1':1, '2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10, '11':11}
     print('Num training images: {}'.format(len(dataset_train)))
 
     for epoch_num in range(parser.epochs):
-        if str(epoch_num) in checks.keys():
+        if parser.change_teacher:
             _epoch_num = str(epoch_num)
-            print('teacher changed   -- loading checkpoint {}  at epoch '.format(checks[_epoch_num]), _epoch_num )
+            print('teacher changed   -- loading checkpoint {}  at epoch '.format(_epoch_num), _epoch_num )
             #retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_{}.pt'.format(checks[_epoch_num]))
-            retinanet_teacher = torch.load('{}/coco_retinanet_{}.pt'.format(teacher_path, checks[_epoch_num]))
+            retinanet_teacher = torch.load('{}/coco_retinanet_{}.pt'.format(teacher_path, _epoch_num))
             retinanet_teacher = torch.nn.DataParallel(retinanet_teacher).cuda()
-            retinanet_teacher.training = True
-
+            retinanet_teacher.training = True # only to return the loss value. This is not the same as net.train()
             retinanet_teacher.module.freeze_bn()
             print('teacher ready')
-        #if epoch_num < 4:
-        #    continue
+        else:
+            print("Same teacher")
+
         exp.log_metric('Current lr', float(optimizer.param_groups[0]['lr']))
         exp.log_metric('Current epoch', int(epoch_num))
 
@@ -292,10 +291,17 @@ def main(args=None):
                 c_loss_distill = 0
                 reg_loss_distill = 0
                 for i in range(parser.batch_size):
-                    class_teacher = class_output_teacher[i]/ torch.norm(class_output_teacher[i])
-                    reg_teacher = reg_output_teacher[i] / torch.norm(reg_output_teacher[i])
-                    class_student = class_output[i] / torch.norm(class_output[i])
-                    reg_student = reg_output[i] / torch.norm(reg_output[i])
+                    if parser.normalization:
+                        class_teacher = class_output_teacher[i]/ torch.norm(class_output_teacher[i])
+                        reg_teacher = reg_output_teacher[i] / torch.norm(reg_output_teacher[i])
+                        class_student = class_output[i] / torch.norm(class_output[i])
+                        reg_student = reg_output[i] / torch.norm(reg_output[i])
+                    else:
+                        class_teacher = class_output_teacher[i]
+                        reg_teacher = reg_output_teacher[i]
+                        class_student = class_output[i]
+                        reg_student = reg_output[i]
+
 
                     c_loss = torch.norm(class_teacher - class_student)
                     r_loss = torch.norm(reg_teacher - reg_student)
