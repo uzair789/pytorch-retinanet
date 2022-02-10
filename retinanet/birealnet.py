@@ -189,8 +189,8 @@ class PyramidFeatures(nn.Module):
     def forward(self, inputs):
         #if match_forwards:
         #    return self.forward2(inputs)
-        return self.forward1(inputs)
-        #return self.forward2(inputs)
+        #return self.forward1(inputs)
+        return self.forward2(inputs)
 
 
 class RegressionModel(nn.Module):
@@ -263,8 +263,8 @@ class RegressionModel(nn.Module):
     def forward(self, inputs):
         #if match_forwards:
         #    return self.forward2(inputs)
-        return self.forward1(inputs)
-        #return self.forward2(inputs)
+        #return self.forward1(inputs)
+        return self.forward2(inputs)
 
 
 class ClassificationModel(nn.Module):
@@ -350,8 +350,8 @@ class ClassificationModel(nn.Module):
     def forward(self, inputs):
         #if match_forwards:
         #    return self.forward2(inputs)
-        return self.forward1(inputs)
-        #return self.forward2(inputs)
+        #return self.forward1(inputs)
+        return self.forward2(inputs)
 
 
 class BasicBlock(nn.Module):
