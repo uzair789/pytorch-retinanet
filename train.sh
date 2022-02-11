@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES='6,7'
+export CUDA_VISIBLE_DEVICES='2,3'
 
 OUTPUT_FOLDER='./results2'
 CDC=8
@@ -15,7 +15,7 @@ LR=0.0001
 #EXP_NAME="BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_OldScheduler_binary_FPN_distillation_head_LambdaLR_lr${LR}"
 #EXP_NAME="normalized_logit_map_teacher_changed_BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR_binary_FPN_distillation_head_LambdaLR_lr${LR}_CDC{$CDC}_RDC{$RDC}_CLC{$CLC}_RLC{$RLC}"
 #EXP_NAME="from_scratch_normalized_logit_map_teacher_changed_every_epoch_consistent_BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_OldScheduler_binary_FPN_distillation_head_LambdaLR_lr${LR}_CDC{$CDC}_RDC{$RDC}_CLC{$CLC}_RLC{$RLC}"
-EXP_NAME="Ablation_BiRealNet18_FFF_teacher_Dis-644_student_Dis-683_RYWYCYNN"
+EXP_NAME="Ablation_BiRealNet18_FFF_teacher_Dis-644_student_Dis-683_RYWNCNNN"
 CAPTION='BiReal18_distillation'
-python train.py --dataset coco --arch BiRealNet18 --lrScheduler LambdaLR --caption ${CAPTION} --coco_path /media/ramdisk/Datasets/coco --depth 18 --output_folder ${OUTPUT_FOLDER} --exp_name ${EXP_NAME} --lr ${LR} --batch_size 8 --epochs 12 --fdc ${FDC} --cdc ${CDC} --rdc ${RDC} --clc ${CLC} --rlc ${RLC} --change_teacher #--normalization #--freeze_batchnorm
+python train.py --dataset coco --arch BiRealNet18 --lrScheduler LambdaLR --caption ${CAPTION} --coco_path /media/ramdisk/Datasets/coco --depth 18 --output_folder ${OUTPUT_FOLDER} --exp_name ${EXP_NAME} --lr ${LR} --batch_size 8 --epochs 12 --fdc ${FDC} --cdc ${CDC} --rdc ${RDC} --clc ${CLC} --rlc ${RLC} #--warmup #--change_teacher #--normalization #--freeze_batchnorm
 

@@ -56,6 +56,7 @@ def main(args=None):
     parser.add_argument('--freeze_batchnorm', default=False, action='store_true')
     parser.add_argument('--normalization', default=False, action='store_true')
     parser.add_argument('--change_teacher', default=False, action='store_true')
+    parser.add_argument('--warmup', default=False, action='store_true')
 
     parser = parser.parse_args(args)
 
@@ -204,8 +205,12 @@ def main(args=None):
     use_gpu = True
 
     # Load student
-    retinanet = torch.load('results2/{}/coco_retinanet_4.pt'.format(model_folder))
-    print('student loaded! ', model_folder)
+    if parser.warmup:
+        retinanet = torch.load('results2/{}/coco_retinanet_4.pt'.format(model_folder))
+        print('student loaded! ', model_folder)
+    else:
+        print('WARMUP is off, initializing new student. Currently only supports depth 18 for ablation')
+        retinanet = birealnet18(checkpoint_path=None, num_classes=dataset_train.num_classes())
     print(retinanet)
 
     # Load Teacher
@@ -273,11 +278,11 @@ def main(args=None):
                 optimizer.zero_grad()
 
                 if torch.cuda.is_available():
-                    print('train.py/student forward')
+                    #print('train.py/student forward')
                     classification_loss, regression_loss, class_output, reg_output, positive_indices, features = retinanet([data['img'].cuda().float(), data['annot']])
                     with torch.no_grad():
                         # deactivating grads on teacher to save memory
-                        print('train.py/teacher forward')
+                        #print('train.py/teacher forward')
                         _, _, class_output_teacher, reg_output_teacher, positive_indices_teacher, features_teacher = retinanet_teacher([data['img'].cuda().float(), data['annot']])
                 else:
                     classification_loss, regression_loss = retinanet([data['img'].float(), data['annot']])
