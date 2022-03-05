@@ -132,7 +132,7 @@ def main(args=None):
 
     distillation = True
     # Create the model
-    if parser.depth == 18:
+    if parser.depth == 18 and parser.arch == 'BiRealNet18':
         #model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch'
         #model_folder = 'BiRealNet18_backbone_plus_SE_attention_3_heads_with_shortcuts_LambdaLR'
         #model_folder = 'BiRealNet18_backbone_plus_heads_shortcuts_binary_from_scratch_LambdaLR'
@@ -193,6 +193,16 @@ def main(args=None):
         # load teacher
         # Dis-729
         teacher_path = 'results2/Resnet10_backbone_full_precision_pretrain_True_freezebatchnorm_False'
+
+    elif parser.depth == 18 and parser.arch == 'FP':
+        # full precision distillation between resnet34 teacher and a resnet18 studnet
+        # new teacher Dis-644
+        model_folder = 'Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False'
+
+        # load teacher
+        # DIs-716
+        teacher_path = 'results2/Resnet34_backbone_full_precision_pretrain_True_freezebatchnorm_False'
+
 
     elif parser.depth == 50:
         retinanet = model.resnet50(num_classes=dataset_train.num_classes(), pretrained=True)
