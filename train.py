@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader
 
 from retinanet import coco_eval
 from retinanet import csv_eval
+from subnet_retraining.networks import ResNet50D
 
 import neptune
 
@@ -131,6 +132,19 @@ def main(args=None):
         retinanet = model.resnet101(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
     elif parser.depth == 152:
         retinanet = model.resnet152(num_classes=dataset_train.num_classes(), pretrained=parser.pretrain)
+    elif parser.arch == 'ofa':
+        print("Model is ResNet50D.")
+        bn_momentum=0.1
+        bn_eps=1e-5
+        retinanet = ResNet50D(
+            n_classes=dataset_train.num_classes(),
+            bn_param=(bn_momentum, bn_eps),
+            dropout_rate=0,
+            width_mult=1.0,
+            depth_param=3,
+            expand_ratio=0.35,
+        )
+
     else:
         raise ValueError('Unsupported model depth, must be one of 18, 34, 50, 101, 152')
 
@@ -220,9 +234,6 @@ def main(args=None):
 
             coco_eval.evaluate_coco(dataset_val, retinanet, output_folder_path, exp=exp)
 
-            #exp.log_metric('Validation: ap1', float(ap1))
-            #exp.log_metric('Validation: IOU_0.5', float(iou_point_five))
-            #exp.log_metric('Validation: IOU_0.75', float(iou_point_sevenfive))
 
         elif parser.dataset == 'csv' and parser.csv_val is not None:
 
