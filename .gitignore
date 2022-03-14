@@ -107,3 +107,4 @@ results/
 *.json
 kill_process.sh
 BiRealNet18_Imagenet_pretrain/
+subnet_retraining/
