@@ -70,6 +70,13 @@ class CocoDataset(Dataset):
 
         return sample
 
+    #Added by Uzair
+    def get_image_path(self, image_index):
+        """Returns the image path to load the image and draw bounding boxes on"""
+        image_info = self.coco.loadImgs(self.image_ids[image_index])[0]
+        path       = os.path.join(self.root_dir, 'images', self.set_name, image_info['file_name'])
+        return path
+
     def load_image(self, image_index):
         image_info = self.coco.loadImgs(self.image_ids[image_index])[0]
         path       = os.path.join(self.root_dir, 'images', self.set_name, image_info['file_name'])

@@ -1,9 +1,17 @@
-from pycocotools.cocoeval import COCOeval
-import json
+import argparse
 import torch
+from torchvision import transforms
+
+from retinanet import model
+from retinanet.dataloader import CocoDataset, Resizer, Normalizer
+#from retinanet import coco_eval
+
+assert torch.__version__.split('.')[0] == '1'
+
+print('CUDA available: {}'.format(torch.cuda.is_available()))
 
 
-def evaluate_coco(dataset, model, output_folder_path, threshold=0.05, exp=None):
+def evaluate_coco(dataset, model, output_folder_pathi=None, threshold=0.05, exp=None):
 
     model.eval()
 
@@ -17,6 +25,9 @@ def evaluate_coco(dataset, model, output_folder_path, threshold=0.05, exp=None):
 
             data = dataset[index]
             scale = data['scale']
+            path = dataset.get_image_path(index)
+            print(path)
+
 
             # run network
             if torch.cuda.is_available():
@@ -40,23 +51,24 @@ def evaluate_coco(dataset, model, output_folder_path, threshold=0.05, exp=None):
                 for box_id in range(boxes.shape[0]):
                     score = float(scores[box_id])
                     label = int(labels[box_id])
-                    box = boxes[box_id, :]
+                    box = boxes[box_id, :].numpy()
 
                     # scores are sorted, so we can break
-                    #if score < threshold:
-                    #    break
+                    if score < threshold:
+                        break
 
                     # append detection for each positively labeled class
-                    image_result = {
-                        'image_id'    : dataset.image_ids[index],
-                        'category_id' : dataset.label_to_coco_label(label),
-                        'score'       : float(score),
-                        'bbox'        : box.tolist(),
-                    }
+                    # image_result = {
+                    #    'image_id'    : dataset.image_ids[index],
+                    #    'category_id' : dataset.label_to_coco_label(label),
+                    #    'score'       : float(score),
+                    #    'bbox'        : box.tolist(),
+                    #}
 
                     # append detection to results
-                    results.append(image_result)
-
+                    #results.append(image_result)
+                    print(box, ' | label = ', label, ' | score = ', score, ' | ',path)
+            print('===========================')
             # append image to list of processed images
             image_ids.append(dataset.image_ids[index])
 
@@ -68,6 +80,7 @@ def evaluate_coco(dataset, model, output_folder_path, threshold=0.05, exp=None):
             print('in return if not reuslts')
             return
 
+        '''
         # write output
         json.dump(results, open('{}/{}_bbox_results.json'.format(output_folder_path, dataset.set_name), 'w'), indent=4)
 
@@ -90,5 +103,44 @@ def evaluate_coco(dataset, model, output_folder_path, threshold=0.05, exp=None):
         exp.log_metric('Validation: IOU_0.75', float(summary[2]))
 
         model.train()
-
+        '''
         return
+
+def main(args=None):
+    parser = argparse.ArgumentParser(description='Simple training script for training a RetinaNet network.')
+
+    parser.add_argument('--coco_path', help='Path to COCO directory', default='/media/School/Datasets/coco')
+    parser.add_argument('--model_path', help='Path to model', type=str)
+
+    parser = parser.parse_args(args)
+
+    dataset_val = CocoDataset(parser.coco_path, set_name='val2017',
+                              transform=transforms.Compose([Normalizer(), Resizer()]))
+
+    # Create the model
+    #retinanet = model.resnet50(num_classes=dataset_val.num_classes(), pretrained=True)
+
+    teacher_path = 'results2/Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False'
+    retinanet = torch.load('{}/coco_retinanet_11.pt'.format(teacher_path))
+    use_gpu = True
+
+    if use_gpu:
+        if torch.cuda.is_available():
+            retinanet = retinanet.cuda()
+
+    if torch.cuda.is_available():
+        #retinanet.load_state_dict(torch.load(parser.model_path))
+        retinanet = torch.nn.DataParallel(retinanet).cuda()
+    else:
+        retinanet.load_state_dict(torch.load(parser.model_path))
+        retinanet = torch.nn.DataParallel(retinanet)
+
+    retinanet.training = False
+    retinanet.eval()
+    retinanet.module.freeze_bn()
+
+    evaluate_coco(dataset_val, retinanet)
+
+
+if __name__ == '__main__':
+    main()
