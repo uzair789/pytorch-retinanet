@@ -195,14 +195,17 @@ def main(args=None):
         teacher_path = 'results2/Resnet10_backbone_full_precision_pretrain_True_freezebatchnorm_False'
 
     elif parser.depth == 18 and parser.arch == 'FP':
-        # full precision distillation between resnet34 teacher and a resnet18 studnet
+        # full precision distillation between teacher and a resnet18 studnet
         # new teacher Dis-644
         model_folder = 'Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False'
 
-        # load teacher
-        # DIs-716
-        teacher_path = 'results2/Resnet34_backbone_full_precision_pretrain_True_freezebatchnorm_False'
+        # load teacher with 34 backbone depth
+        # Dis-716
+        # teacher_path = 'results2/Resnet34_backbone_full_precision_pretrain_True_freezebatchnorm_False'
 
+        # load teacher with 50 backbone depth
+        # Dis-643
+        teacher_path = 'results2/Resnet34_backbone_full_precision_pretrain_True_freezebatchnorm_False'
 
     elif parser.depth == 50:
         retinanet = model.resnet50(num_classes=dataset_train.num_classes(), pretrained=True)
