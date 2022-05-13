@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 
 from retinanet import coco_eval
 from retinanet import csv_eval
-from subnet_retraining.networks import ResNet50D
+#from subnet_retraining.networks import ResNet50D
 
 import neptune
 
