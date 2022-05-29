@@ -288,6 +288,19 @@ def main(args=None):
         else:
             print("Same teacher")
 
+        if parser.lrScheduler == 'Anneal710':
+            print('Anneal710Scheduler')
+
+            current_lr = float(optimizer.param_groups[0]['lr'])
+            if epoch_num == 7 or epoch_num == 10:
+                current_lr = current_lr * 0.1
+                optimizer.param_groups[0]['lr'] = current_lr
+
+                #for param_group in optimizer.param_groups:
+                #    current_lr = current_lr * 0.1
+                #    param_group['lr'] = current_lr
+                #    print(param_group['lr'])
+
         exp.log_metric('Current lr', float(optimizer.param_groups[0]['lr']))
         exp.log_metric('Current epoch', int(epoch_num))
 
