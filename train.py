@@ -205,7 +205,7 @@ def main(args=None):
 
         # load teacher with 50 backbone depth
         # Dis-643
-        teacher_path = 'results2/Resnet34_backbone_full_precision_pretrain_True_freezebatchnorm_False'
+        teacher_path = 'results2/Resnet50_backbone_full_precision_pretrain_True_freezebatchnorm_False'
 
     elif parser.depth == 50:
         retinanet = model.resnet50(num_classes=dataset_train.num_classes(), pretrained=True)

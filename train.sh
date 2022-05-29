@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES='0,1'
+export CUDA_VISIBLE_DEVICES='2,3'
  
 OUTPUT_FOLDER='./results2'
 CDC=8
