@@ -195,9 +195,11 @@ def main(args=None):
         teacher_path = 'results2/Resnet10_backbone_full_precision_pretrain_True_freezebatchnorm_False'
 
     elif parser.depth == 18 and parser.arch == 'FP':
+
+        #OLD MODELS
         # full precision distillation between teacher and a resnet18 studnet
-        # new teacher Dis-644
-        model_folder = 'Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False'
+        # new student Dis-644
+        #model_folder = 'Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False'
 
         # load teacher with 34 backbone depth
         # Dis-716
@@ -205,7 +207,17 @@ def main(args=None):
 
         # load teacher with 50 backbone depth
         # Dis-643
-        teacher_path = 'results2/Resnet50_backbone_full_precision_pretrain_True_freezebatchnorm_False'
+        #teacher_path = 'results2/Resnet50_backbone_full_precision_pretrain_True_freezebatchnorm_False'
+
+        # DIS-1027
+        model_folder = 'results3/debug_LR1e-4_BATCH_SIZE16_annealing_at_epoch7_epoch10_Resnet18_backbone_full_precision_pretrain_True_freezebatchnorm_False'
+
+        # load teacher wth 50 depth
+        # Dis-1026
+        teacher_path = 'results3/debug_LR1e-4_BATCH_SIZE16_annealing_at_epoch7_epoch10_Resnet50_backbone_full_precision_pretrain_True_freezebatchnorm_False'
+
+
+
 
     elif parser.depth == 50:
         retinanet = model.resnet50(num_classes=dataset_train.num_classes(), pretrained=True)
@@ -219,7 +231,7 @@ def main(args=None):
 
     # Load student
     if parser.warmup:
-        retinanet = torch.load('results2/{}/coco_retinanet_4.pt'.format(model_folder))
+        retinanet = torch.load('{}/coco_retinanet_4.pt'.format(model_folder))
         print('student loaded! ', model_folder)
     else:
         print('WARMUP is off, initializing new student. Currently only supports depth 18 for ablation')
