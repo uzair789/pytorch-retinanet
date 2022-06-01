@@ -262,9 +262,11 @@ def main(args=None):
     if parser.lrScheduler == 'LambdaLR':
         print('LambdaLR')
         scheduler = optim.lr_scheduler.LambdaLR(optimizer, lambda step : (1.0-step/parser.epochs), last_epoch=-1)
-    else:
+    elif parser.lrScheduler == 'OldScheduler':
         print('old scheduler')
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
+    else:
+        pass
 
     loss_hist = collections.deque(maxlen=500)
 
@@ -526,9 +528,11 @@ def main(args=None):
         if parser.lrScheduler == 'LambdaLR':
             print('step LambdaLR')
             scheduler.step()
-        else:
+        elif parser.lrScheduler == 'OldScheduler':
             print('step oldScheduler')
             scheduler.step(np.mean(epoch_loss))
+        else:
+            pass
 
         torch.save(retinanet.module, os.path.join(output_folder_path, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num)))
 
