@@ -278,7 +278,7 @@ def main(args=None):
     print('Num training images: {}'.format(len(dataset_train)))
 
     for epoch_num in range(parser.epochs):
-        if parser.change_teacher:
+        if parser.change_teacher and epoch_num < 12: # because training for 24 epochs and teacher only has 12 epochs
             _epoch_num = str(epoch_num)
             print('teacher changed   -- loading checkpoint {}  at epoch '.format(_epoch_num), _epoch_num )
             #retinanet_teacher = torch.load('results/resnet18_backbone_full_precision/coco_retinanet_{}.pt'.format(checks[_epoch_num]))
